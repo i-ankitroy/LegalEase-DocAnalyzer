@@ -1,0 +1,189 @@
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-xl) var(--spacing-md);
+  color: var(--text-primary);
+  flex-shrink: 0;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+
+  .sidebar-header {
+    padding: 0 var(--spacing-sm) var(--spacing-xl);
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: var(--spacing-lg);
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-xs);
+      background: linear-gradient(135deg, #fff, var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .user-greeting {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+      display: none; // hide scrollbar for nav
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+
+      span {
+        font-size: 1.25rem;
+        filter: grayscale(100%) opacity(0.7);
+        transition: all 0.3s ease;
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--accent-primary);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        transform: translateX(4px);
+
+        span {
+          filter: grayscale(0%) opacity(1);
+          transform: scale(1.1);
+        }
+      }
+
+      &.active {
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), transparent);
+        color: var(--text-primary);
+        font-weight: 600;
+
+        &::before {
+          transform: scaleY(1);
+        }
+
+        span {
+          filter: grayscale(0%) opacity(1);
+          text-shadow: 0 0 10px var(--accent-glow);
+        }
+      }
+    }
+  }
+
+  .document-info {
+    margin: var(--spacing-xl) 0;
+    padding: var(--spacing-md);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+
+    h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .doc-name {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+
+      &::before {
+        content: '📄';
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--glass-border);
+
+    .logout-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      span {
+        font-size: 1.1rem;
+      }
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--error);
+        border-color: rgba(239, 68, 68, 0.2);
+
+        span {
+          transform: translateX(2px);
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    position: fixed;
+    transform: translateX(-100%);
+    box-shadow: none;
+
+    &.open {
+      transform: translateX(0);
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+  }
+}

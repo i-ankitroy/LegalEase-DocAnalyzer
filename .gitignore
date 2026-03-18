@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# ChromaDB storage
+backend/chromadb_storage/
+
+# Uploaded files (optional - if you don't want to track user uploads)
+backend/uploads/
+
+# User data & databases (NEVER commit these)
+backend/users.json
+backend/users.json.migrated
+backend/*.db
+backend/.env
+.venv/
+
+
+# Node modules (React)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
