@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { uploadDocument } from '../../utils/api'
 import './index.scss'
 
@@ -10,7 +9,7 @@ const Upload = () => {
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
-  const navigate = useNavigate()
+
 
   const validateFile = (f) => {
     if (!f) return 'No file selected.'
@@ -60,10 +59,10 @@ const Upload = () => {
 
     try {
       const data = await uploadDocument(file)
-      // Store only document reference info (not auth tokens)
+      // Store document reference for the analyze page
       localStorage.setItem('currentDocumentId', data.document_id)
       localStorage.setItem('currentDocumentName', data.filename)
-      navigate('/chat')
+      window.location.href = '/analyze-document'
     } catch (err) {
       setError(err.message || 'Failed to upload document. Please try again.')
     } finally {

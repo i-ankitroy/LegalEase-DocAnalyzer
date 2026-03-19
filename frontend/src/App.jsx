@@ -6,7 +6,7 @@ import SignIn from './components/SignIn'
 import SignUp from './components/SignUp'
 import Home from './components/Home'
 import Upload from './components/Upload'
-import Chat from './components/Chat'
+import AnalyzeDocument from './components/AnalyzeDocument'
 import LegalChat from './components/LegalChat'
 import './App.scss'
 
@@ -21,14 +21,12 @@ const checkAuth = async () => {
   }
 }
 
-// Redirect logged-in users away from signin/signup → but NOT from landing
 const AuthRoute = ({ children, isAuthenticated, loading }) => {
   if (loading) return null
   if (isAuthenticated) return <Navigate to="/home" replace />
   return children
 }
 
-// Block unauthenticated users from protected pages
 const ProtectedRoute = ({ children, isAuthenticated, loading }) => {
   if (loading) return null
   if (!isAuthenticated) return <Navigate to="/signin" replace />
@@ -48,32 +46,31 @@ function App() {
 
   return (
     <Routes>
-      {/* Landing is ALWAYS accessible — no auth redirect */}
+      {/* Landing — always accessible */}
       <Route path="/" element={<Landing isAuthenticated={isAuthenticated} loading={loading} />} />
 
-      {/* Signin / Signup redirect logged-in users to home */}
+      {/* Auth routes — redirect logged-in users to home */}
       <Route path="/signin" element={
         <AuthRoute isAuthenticated={isAuthenticated} loading={loading}>
           <SignIn />
         </AuthRoute>
       } />
-
       <Route path="/signup" element={
         <AuthRoute isAuthenticated={isAuthenticated} loading={loading}>
           <SignUp />
         </AuthRoute>
       } />
 
-      {/* Protected Routes */}
+      {/* Protected app routes */}
       <Route path="/" element={
         <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
           <Layout />
         </ProtectedRoute>
       }>
-        <Route path="home" element={<Home />} />
-        <Route path="upload" element={<Upload />} />
-        <Route path="chat" element={<Chat />} />
-        <Route path="legal-advice" element={<LegalChat />} />
+        <Route path="home"             element={<Home />} />
+        <Route path="upload"           element={<Upload />} />
+        <Route path="analyze-document" element={<AnalyzeDocument />} />
+        <Route path="legal-advice"     element={<LegalChat />} />
       </Route>
 
       {/* Catch all → landing */}

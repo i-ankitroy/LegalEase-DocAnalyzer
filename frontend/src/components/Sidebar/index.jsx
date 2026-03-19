@@ -49,8 +49,8 @@ const Sidebar = () => {
         <NavLink to="/upload" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           <span>📤</span> Upload
         </NavLink>
-        <NavLink to="/chat" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span>💬</span> Chat
+        <NavLink to="/analyze-document" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+          <span>🔍</span> Analyze Document
         </NavLink>
         <NavLink to="/legal-advice" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           <span>⚖️</span> Legal Advice

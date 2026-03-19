@@ -37,6 +37,8 @@
 
 .main-content {
   flex: 1;
+  min-height: 0;        /* prevent flex child from overflowing — stops layout shift */
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;

@@ -123,6 +123,24 @@ export const getDocument = async (documentId) =>
 export const listModels = async () =>
   apiRequest('/models')
 
+export const analyzeDocument = async (documentId, model = 'llama3.2') =>
+  apiRequest('/analyze', {
+    method: 'POST',
+    body: JSON.stringify({ document_id: documentId, model }),
+  })
+
+export const suggestAlternative = async (documentId, redFlagTitle, redFlagExcerpt, redFlagIssue, model = 'llama3.2') =>
+  apiRequest('/suggest-alternative', {
+    method: 'POST',
+    body: JSON.stringify({
+      document_id: documentId,
+      red_flag_title: redFlagTitle,
+      red_flag_excerpt: redFlagExcerpt,
+      red_flag_issue: redFlagIssue,
+      model,
+    }),
+  })
+
 export const signOut = async () => {
   await fetch(`${API_BASE_URL}/api/auth/signout`, {
     method: 'POST',

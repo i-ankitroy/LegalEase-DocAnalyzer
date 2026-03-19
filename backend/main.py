@@ -16,7 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 
 from document_processor import extract_text_from_file, store_document_in_chromadb, delete_document_from_chromadb
-from ollama_handler import chat_with_document
+from ollama_handler import chat_with_document, analyze_document_for_flags, suggest_alternative
 from legal_handler import LegalHandler
 from auth import (
     UserSignUp, UserSignIn,
@@ -176,6 +176,19 @@ class LegalChatRequest(BaseModel):
 
 class LegalChatHistoryRequest(BaseModel):
     messages: list = Field(..., min_length=1, max_length=50)
+
+
+class AnalyzeRequest(BaseModel):
+    document_id: str = Field(..., min_length=36, max_length=36, pattern=r"^[0-9a-f-]+$")
+    model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
+
+
+class SuggestAlternativeRequest(BaseModel):
+    document_id: str = Field(..., min_length=36, max_length=36, pattern=r"^[0-9a-f-]+$")
+    red_flag_title: str = Field(..., min_length=1, max_length=300)
+    red_flag_excerpt: str = Field(default="", max_length=2000)
+    red_flag_issue: str = Field(default="", max_length=2000)
+    model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
 
 
 # ── Cookie Helper ──────────────────────────────────────────────────────────────
@@ -423,6 +436,72 @@ async def legal_chat_with_history(
     except Exception as e:
         logger.error(f"Legal chat-history error for {current_user.get('email')}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An error occurred in the legal assistant.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DOCUMENT ANALYSIS ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/analyze")
+@limiter.limit("10/minute")
+async def analyze_document_endpoint(
+    request: Request,
+    req: AnalyzeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze a document for red flags and legal traps using RAG + specialized prompt."""
+    doc = _get_doc(req.document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    if doc["user_email"] != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
+    try:
+        result = analyze_document_for_flags(req.document_id, req.model)
+        return {
+            "document_id": req.document_id,
+            "filename": doc["filename"],
+            "summary": result["summary"],
+            "red_flags": result["red_flags"],
+            "flag_count": len(result["red_flags"])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        _email = current_user.get("email", "unknown") if isinstance(current_user, dict) else "unknown"
+        logger.error(f"Analysis error for {_email}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Document analysis failed. Please try again.")
+
+
+@app.post("/suggest-alternative")
+@limiter.limit("20/minute")
+async def suggest_alternative_endpoint(
+    request: Request,
+    req: SuggestAlternativeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Return a fairer clause alternative and negotiation advice for a specific red flag."""
+    # Verify document ownership first
+    doc = _get_doc(req.document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    if doc["user_email"] != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
+    try:
+        alternative = suggest_alternative(
+            req.red_flag_title,
+            req.red_flag_excerpt,
+            req.red_flag_issue,
+            req.model
+        )
+        return {"alternative": alternative}
+    except HTTPException:
+        raise
+    except Exception as e:
+        _email = current_user.get("email", "unknown") if isinstance(current_user, dict) else "unknown"
+        logger.error(f"Suggest alternative error for {_email}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate alternatives. Please try again.")
+
+
 
 
 @app.get("/document/{document_id}")
