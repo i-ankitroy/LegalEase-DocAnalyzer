@@ -1,12 +1,26 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { signOut } from '../../utils/api'
+import { signOut, getHistory, deleteSession } from '../../utils/api'
 import './index.scss'
 
 const Sidebar = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [user, setUser] = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [history, setHistory] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+
+  const fetchHistory = async () => {
+    try {
+      const data = await getHistory()
+      setHistory(data.sessions || [])
+    } catch (err) {
+      console.error("Failed to fetch history:", err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   useEffect(() => {
     const userStr = localStorage.getItem('user')
@@ -17,7 +31,27 @@ const Sidebar = () => {
         localStorage.removeItem('user')
       }
     }
-  }, [])
+    fetchHistory()
+  }, [location.pathname]) // Re-fetch history when navigating (e.g. after a new analysis)
+
+  const handleDeleteSession = async (e, sessionId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!window.confirm("Are you sure you want to delete this chat session?")) return
+    
+    try {
+      await deleteSession(sessionId)
+      setHistory(prev => prev.filter(s => s.session_id !== sessionId))
+      // If we are currently viewing this session, navigate away
+      const currentParams = new URLSearchParams(location.search)
+      if (currentParams.get('session_id') === sessionId) {
+        navigate('/home')
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err)
+      alert("Failed to delete session.")
+    }
+  }
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -56,6 +90,38 @@ const Sidebar = () => {
           <span>⚖️</span> Legal Advice
         </NavLink>
       </nav>
+
+      <div className="history-section">
+        <h3>Recent History</h3>
+        {loadingHistory ? (
+          <p className="history-empty">Loading...</p>
+        ) : history.length === 0 ? (
+          <p className="history-empty">No recent chats.</p>
+        ) : (
+          <div className="history-list">
+            {history.map((session) => (
+              <div 
+                key={session.session_id} 
+                className="history-item"
+                onClick={() => navigate(`/analyze-document?session_id=${session.session_id}`)}
+              >
+                <div className="history-icon">📄</div>
+                <div className="history-details">
+                  <span className="history-title">{session.title}</span>
+                  <span className="history-doc">{session.document_name}</span>
+                </div>
+                <button 
+                  className="history-delete" 
+                  onClick={(e) => handleDeleteSession(e, session.session_id)}
+                  title="Delete Session"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="sidebar-footer">
         <button className="logout-btn" onClick={handleLogout} disabled={loggingOut}>

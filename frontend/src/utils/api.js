@@ -53,8 +53,9 @@ async function _tryRefresh() {
 
 // ── Clear local state and navigate to sign-in ──────────────────────────────────
 function _clearUserAndRedirect() {
-  // Only user display info remains in localStorage (no tokens)
   localStorage.removeItem('user')
+  localStorage.removeItem('currentDocumentId')
+  localStorage.removeItem('currentDocumentName')
   window.location.href = '/signin'
 }
 
@@ -99,10 +100,15 @@ export const uploadDocument = async (file) => {
   return response.json()
 }
 
-export const chatWithDocument = async (documentId, question, model = 'llama3.2') =>
+export const chatWithDocument = async (documentId, question, model = 'llama3.2', sessionId = null) =>
   apiRequest('/chat', {
     method: 'POST',
-    body: JSON.stringify({ document_id: documentId, question, model }),
+    body: JSON.stringify({ 
+      document_id: documentId, 
+      question, 
+      model,
+      ...(sessionId && { session_id: sessionId })
+    }),
   })
 
 export const legalChat = async (message) =>
@@ -123,13 +129,17 @@ export const getDocument = async (documentId) =>
 export const listModels = async () =>
   apiRequest('/models')
 
-export const analyzeDocument = async (documentId, model = 'llama3.2') =>
+export const analyzeDocument = async (documentId, model = 'llama3.2', sessionId = null) =>
   apiRequest('/analyze', {
     method: 'POST',
-    body: JSON.stringify({ document_id: documentId, model }),
+    body: JSON.stringify({
+      document_id: documentId,
+      model,
+      ...(sessionId && { session_id: sessionId })
+    }),
   })
 
-export const suggestAlternative = async (documentId, redFlagTitle, redFlagExcerpt, redFlagIssue, model = 'llama3.2') =>
+export const suggestAlternative = async (documentId, redFlagTitle, redFlagExcerpt, redFlagIssue, model = 'llama3.2', sessionId = null) =>
   apiRequest('/suggest-alternative', {
     method: 'POST',
     body: JSON.stringify({
@@ -138,14 +148,27 @@ export const suggestAlternative = async (documentId, redFlagTitle, redFlagExcerp
       red_flag_excerpt: redFlagExcerpt,
       red_flag_issue: redFlagIssue,
       model,
+      ...(sessionId && { session_id: sessionId })
     }),
   })
 
+export const getHistory = async () =>
+  apiRequest('/history')
+
+export const getSession = async (sessionId) =>
+  apiRequest(`/history/${sessionId}`)
+
+export const deleteSession = async (sessionId) =>
+  apiRequest(`/history/${sessionId}`, { method: 'DELETE' })
+
 export const signOut = async () => {
-  await fetch(`${API_BASE_URL}/api/auth/signout`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-  localStorage.removeItem('user')
-  window.location.href = '/signin'
+  try {
+    await fetch(`${API_BASE_URL}/api/auth/signout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (error) {
+    console.error("Signout error:", error)
+  }
+  _clearUserAndRedirect()
 }

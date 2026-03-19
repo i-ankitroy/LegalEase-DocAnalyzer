@@ -49,6 +49,27 @@ def _init_docs_db():
             created_at  TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+            session_id    TEXT PRIMARY KEY,
+            user_email    TEXT NOT NULL,
+            document_id   TEXT NOT NULL,
+            document_name TEXT NOT NULL,
+            title         TEXT NOT NULL,
+            created_at    TEXT NOT NULL,
+            updated_at    TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            message_id  TEXT PRIMARY KEY,
+            session_id  TEXT NOT NULL,
+            role        TEXT NOT NULL,
+            content     TEXT NOT NULL,
+            created_at  TEXT NOT NULL,
+            FOREIGN KEY (session_id) REFERENCES chat_sessions (session_id) ON DELETE CASCADE
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -75,9 +96,68 @@ def _get_doc(doc_id) -> Optional[dict]:
 
 def _delete_doc(doc_id):
     conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.execute('PRAGMA foreign_keys = ON')
     conn.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
     conn.commit()
     conn.close()
+
+# ── Chat History DB Helpers ──────────────────────────────────────────────────
+
+def _get_history(user_email: str) -> list:
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT * FROM chat_sessions WHERE user_email = ? ORDER BY updated_at DESC", 
+        (user_email,)
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def _get_session_messages(session_id: str) -> list:
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC", 
+        (session_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def _create_session(session_id, user_email, document_id, document_name, title):
+    from datetime import datetime
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    now = datetime.utcnow().isoformat()
+    conn.execute(
+        "INSERT INTO chat_sessions (session_id, user_email, document_id, document_name, title, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+        (session_id, user_email, document_id, document_name, title, now, now)
+    )
+    conn.commit()
+    conn.close()
+
+def _save_message(session_id, role, content):
+    from datetime import datetime
+    import uuid
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    now = datetime.utcnow().isoformat()
+    msg_id = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO chat_messages (message_id, session_id, role, content, created_at) VALUES (?,?,?,?,?)",
+        (msg_id, session_id, role, content, now)
+    )
+    conn.execute(
+        "UPDATE chat_sessions SET updated_at = ? WHERE session_id = ?",
+        (now, session_id)
+    )
+    conn.commit()
+    conn.close()
+
+def _delete_session(session_id):
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute("DELETE FROM chat_sessions WHERE session_id = ?", (session_id,))
+    conn.commit()
+    conn.close()
+
 
 # ── Rate Limiter ───────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
@@ -158,6 +238,7 @@ class ChatRequest(BaseModel):
     document_id: str = Field(..., min_length=36, max_length=36, pattern=r"^[0-9a-f-]+$")
     question: str = Field(..., min_length=1, max_length=2000)
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
+    session_id: Optional[str] = None
 
     @field_validator("question")
     @classmethod
@@ -382,12 +463,30 @@ async def chat(
         if doc["user_email"] != current_user["email"]:
             raise HTTPException(status_code=403, detail="Access denied.")
 
+        # ── Handle History Session ─────────────────────────────────────────
+        session_id = req.session_id
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            title = req.question[:50] + "..." if len(req.question) > 50 else req.question
+            _create_session(session_id, current_user["email"], req.document_id, doc["filename"], title)
+        
+        # Save user message
+        _save_message(session_id, "user", req.question)
+
         response = chat_with_document(
             document_id=req.document_id,
             question=req.question,
             model=req.model
         )
-        return {"response": response, "document_id": req.document_id}
+
+        # Save assistant message
+        _save_message(session_id, "assistant", response)
+
+        return {
+            "response": response, 
+            "document_id": req.document_id,
+            "session_id": session_id
+        }
 
     except HTTPException:
         raise
@@ -457,12 +556,26 @@ async def analyze_document_endpoint(
         raise HTTPException(status_code=403, detail="Access denied.")
     try:
         result = analyze_document_for_flags(req.document_id, req.model)
+
+        # ── Handle History Session ─────────────────────────────────────────
+        session_id = req.session_id
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            title = "Document Analysis"
+            _create_session(session_id, current_user["email"], req.document_id, doc["filename"], title)
+            
+            # Save the analysis summary as the first assistant message
+            # We don't save the red flags block itself as a message, just the summary, 
+            # to seed the chat context properly if they look at history later.
+            _save_message(session_id, "assistant", f"**Analysis Summary:**\n{result['summary']}")
+
         return {
             "document_id": req.document_id,
             "filename": doc["filename"],
             "summary": result["summary"],
             "red_flags": result["red_flags"],
-            "flag_count": len(result["red_flags"])
+            "flag_count": len(result["red_flags"]),
+            "session_id": session_id
         }
     except HTTPException:
         raise
@@ -502,6 +615,56 @@ async def suggest_alternative_endpoint(
         raise HTTPException(status_code=500, detail="Failed to generate alternatives. Please try again.")
 
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CHAT HISTORY ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/history")
+async def get_history(current_user: dict = Depends(get_current_user)):
+    """Get all chat sessions for the current user."""
+    try:
+        sessions = _get_history(current_user["email"])
+        return {"sessions": sessions}
+    except Exception as e:
+        logger.error(f"Error fetching history for {current_user['email']}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch chat history.")
+
+
+@app.get("/history/{session_id}")
+async def get_session(session_id: str, current_user: dict = Depends(get_current_user)):
+    """Get messages for a specific chat session."""
+    try:
+        sessions = _get_history(current_user["email"])
+        session = next((s for s in sessions if s["session_id"] == session_id), None)
+        if not session:
+            raise HTTPException(status_code=403, detail="Access denied or session not found.")
+        
+        messages = _get_session_messages(session_id)
+        return {"session_id": session_id, "session": session, "messages": messages}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching session {session_id} for {current_user['email']}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch session messages.")
+
+
+@app.delete("/history/{session_id}")
+async def delete_session(session_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a chat session."""
+    try:
+        sessions = _get_history(current_user["email"])
+        if not any(s["session_id"] == session_id for s in sessions):
+            raise HTTPException(status_code=403, detail="Access denied.")
+        
+        _delete_session(session_id)
+        return {"message": "Session deleted."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting session {session_id} for {current_user['email']}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete session.")
 
 
 @app.get("/document/{document_id}")

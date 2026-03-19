@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { analyzeDocument, suggestAlternative, chatWithDocument } from '../../utils/api'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { analyzeDocument, suggestAlternative, chatWithDocument, getSession } from '../../utils/api'
 import './index.scss'
 
 const SEVERITY_CONFIG = {
@@ -11,7 +11,11 @@ const SEVERITY_CONFIG = {
 
 const AnalyzeDocument = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const messagesEndRef = useRef(null)
+
+  // session state
+  const [currentSessionId, setCurrentSessionId] = useState(null)
 
   // document state
   const [documentId,   setDocumentId]   = useState(null)
@@ -33,17 +37,45 @@ const AnalyzeDocument = () => {
   const [chatLoading,  setChatLoading]  = useState(false)
   const [chatError,    setChatError]    = useState(null)
 
-  /* ── on mount: read document from localStorage ─────────────────────────── */
+  /* ── on mount: read document from localStorage OR load session ─────────── */
   useEffect(() => {
-    const docId   = localStorage.getItem('currentDocumentId')
-    const docName = localStorage.getItem('currentDocumentName')
-    if (!docId) {
-      navigate('/upload')
+    const params = new URLSearchParams(location.search)
+    const sessionIdParam = params.get('session_id')
+
+    if (sessionIdParam) {
+      // Load an existing session from history
+      setAnalyzing(true)
+      getSession(sessionIdParam)
+        .then(data => {
+          setDocumentId(data.session.document_id)
+          setDocumentName(data.session.document_name)
+          setCurrentSessionId(data.session_id)
+          setMessages(data.messages || [])
+          setAnalyzed(true) // Open the UI
+          // Optional: we don't restore red flags here, just the chat that shows the summary
+        })
+        .catch(err => {
+          console.error("Failed to load session:", err)
+          setAnalyzeErr("Failed to load this chat session.")
+        })
+        .finally(() => setAnalyzing(false))
     } else {
-      setDocumentId(docId)
-      setDocumentName(docName || 'Document')
+      // No session param, so start fresh from the uploaded document
+      const docId   = localStorage.getItem('currentDocumentId')
+      const docName = localStorage.getItem('currentDocumentName')
+      if (!docId) {
+        navigate('/upload')
+      } else {
+        setDocumentId(docId)
+        setDocumentName(docName || 'Document')
+        setCurrentSessionId(null)
+        setMessages([])
+        setAnalyzed(false)
+        setSummary('')
+        setRedFlags([])
+      }
     }
-  }, [navigate])
+  }, [location.search, navigate])
 
   /* ── auto-scroll chat ───────────────────────────────────────────────────── */
   useEffect(() => {
@@ -60,12 +92,23 @@ const AnalyzeDocument = () => {
     setAlternatives({})
 
     try {
-      const data = await analyzeDocument(documentId)
+      const data = await analyzeDocument(documentId, 'llama3.2', currentSessionId)
       setSummary(data.summary)
       setRedFlags(data.red_flags || [])
       setAnalyzed(true)
+      if (data.session_id) {
+        setCurrentSessionId(data.session_id)
+        // Update URL quietly so sharing/refreshing keeps the session
+        navigate(`/analyze-document?session_id=${data.session_id}`, { replace: true })
+      }
     } catch (err) {
-      setAnalyzeErr(err.message || 'Analysis failed. Please try again.')
+      if (err.message === 'Access denied.' || err.message === 'Document not found.') {
+        localStorage.removeItem('currentDocumentId')
+        localStorage.removeItem('currentDocumentName')
+        navigate('/upload')
+      } else {
+        setAnalyzeErr(err.message || 'Analysis failed. Please try again.')
+      }
     } finally {
       setAnalyzing(false)
     }
@@ -113,8 +156,12 @@ const AnalyzeDocument = () => {
     setChatLoading(true)
 
     try {
-      const data = await chatWithDocument(documentId, userMsg)
+      const data = await chatWithDocument(documentId, userMsg, 'llama3.2', currentSessionId)
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+      if (data.session_id && !currentSessionId) {
+        setCurrentSessionId(data.session_id)
+        navigate(`/analyze-document?session_id=${data.session_id}`, { replace: true })
+      }
     } catch (err) {
       setChatError(err.message || 'Failed to get a response.')
     } finally {
