@@ -32,6 +32,10 @@ const SignIn = () => {
         throw new Error(data.detail || 'Sign in failed')
       }
 
+      // Clear legacy state from previous user sessions
+      localStorage.removeItem('currentDocumentId')
+      localStorage.removeItem('currentDocumentName')
+      
       // Hard redirect so App.jsx re-runs checkAuth() and isAuthenticated becomes true
       localStorage.setItem('user', JSON.stringify(data.user))
       window.location.href = '/home'

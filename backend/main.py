@@ -262,6 +262,7 @@ class LegalChatHistoryRequest(BaseModel):
 class AnalyzeRequest(BaseModel):
     document_id: str = Field(..., min_length=36, max_length=36, pattern=r"^[0-9a-f-]+$")
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
+    session_id: Optional[str] = None
 
 
 class SuggestAlternativeRequest(BaseModel):
@@ -270,6 +271,7 @@ class SuggestAlternativeRequest(BaseModel):
     red_flag_excerpt: str = Field(default="", max_length=2000)
     red_flag_issue: str = Field(default="", max_length=2000)
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
+    session_id: Optional[str] = None
 
 
 # ── Cookie Helper ──────────────────────────────────────────────────────────────

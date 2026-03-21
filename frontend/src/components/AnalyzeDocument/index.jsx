@@ -12,7 +12,7 @@ const SEVERITY_CONFIG = {
 const AnalyzeDocument = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const messagesEndRef = useRef(null)
+  const chatMessagesRef = useRef(null)
 
   // session state
   const [currentSessionId, setCurrentSessionId] = useState(null)
@@ -79,7 +79,9 @@ const AnalyzeDocument = () => {
 
   /* ── auto-scroll chat ───────────────────────────────────────────────────── */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight
+    }
   }, [messages])
 
   /* ── start analysis ─────────────────────────────────────────────────────── */
@@ -334,7 +336,7 @@ const AnalyzeDocument = () => {
           <span>💬 Ask Questions About This Document</span>
         </div>
 
-        <div className="chat-messages">
+        <div className="chat-messages" ref={chatMessagesRef}>
           {messages.length === 0 ? (
             <div className="chat-empty">
               <p className="chat-empty__hint">Ask anything about the document — clauses, obligations, definitions, or follow-ups on any red flag.</p>
@@ -366,7 +368,6 @@ const AnalyzeDocument = () => {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </>
           )}
         </div>

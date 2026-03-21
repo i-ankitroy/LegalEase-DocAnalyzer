@@ -11,10 +11,12 @@ const LegalChat = () => {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
   }, [messages])
 
   const handleSubmit = async (e) => {
@@ -67,7 +69,7 @@ const LegalChat = () => {
         matters, please consult with a qualified lawyer in your jurisdiction.
       </div>
 
-      <div className="messages-container">
+      <div className="messages-container" ref={messagesContainerRef}>
         {messages.map((message, index) => (
           <div key={index} className={`message ${message.role}`}>
             <div className="message-icon">
@@ -86,7 +88,6 @@ const LegalChat = () => {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSubmit} className="chat-input-form">
