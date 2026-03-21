@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import ThemeToggle from '../ThemeToggle'
 import './index.scss'
 
 const SignIn = () => {
@@ -48,6 +49,7 @@ const SignIn = () => {
 
   return (
     <div className="auth-page">
+      <ThemeToggle />
       <div className="auth-container">
         <div className="auth-left">
           <div className="auth-branding">

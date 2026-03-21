@@ -8,7 +8,7 @@
     font-size: 2.5rem;
     margin-bottom: var(--spacing-sm);
     text-align: center;
-    background: linear-gradient(135deg, #fff, var(--text-secondary));
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -22,14 +22,13 @@
   }
 
   .upload-area {
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    border: 2px dashed rgba(99, 102, 241, 0.3);
+    background: var(--bg-primary);
+    border: none;
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     text-align: center;
     transition: all 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-inset);
     position: relative;
     overflow: hidden;
 
@@ -40,17 +39,15 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+      background: radial-gradient(circle at center, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
     }
 
     &:hover {
-      border-color: var(--accent-primary);
-      background: rgba(26, 29, 46, 0.8);
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(99, 102, 241, 0.2);
+      background: var(--bg-secondary);
+      box-shadow: var(--shadow-inset);
 
       &::before {
         opacity: 1;
@@ -58,7 +55,7 @@
 
       .upload-icon {
         transform: scale(1.1) translateY(-5px);
-        text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        filter: drop-shadow(0 4px 6px rgba(212, 175, 55, 0.2));
       }
     }
 
@@ -88,28 +85,34 @@
           margin-top: var(--spacing-lg);
           font-size: 0.85rem;
           color: var(--text-muted);
-          background: rgba(0, 0, 0, 0.2);
+          background: var(--bg-secondary);
           display: inline-block;
           padding: var(--spacing-xs) var(--spacing-md);
           border-radius: var(--radius-full);
-          border: 1px solid var(--border-light);
+          border: none;
+          box-shadow: var(--shadow-sm);
         }
       }
 
       .file-label {
         display: inline-block;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: white;
+        background: var(--bg-primary);
+        color: var(--accent-secondary);
         padding: 0.875rem 2rem;
         border-radius: var(--radius-full);
         cursor: pointer;
         font-weight: 600;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        box-shadow: var(--shadow-md);
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+          box-shadow: var(--shadow-lg);
+          color: var(--accent-primary);
+        }
+        &:active {
+          transform: translateY(0);
+          box-shadow: var(--shadow-inset);
         }
 
         input {
@@ -121,30 +124,31 @@
 
   .file-preview {
     margin-top: var(--spacing-2xl);
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(16px);
-    border-radius: var(--radius-lg);
+    background: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-xl);
     padding: var(--spacing-xl);
     animation: fadeIn 0.4s ease-out;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
 
     .file-info {
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
       padding: var(--spacing-md);
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--bg-primary);
       border-radius: var(--radius-md);
       margin-bottom: var(--spacing-lg);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: none;
+      box-shadow: var(--shadow-inset);
 
       .file-icon {
         font-size: 2rem;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+        color: var(--accent-primary);
+        background: var(--bg-secondary);
         padding: var(--spacing-sm);
         border-radius: var(--radius-md);
-        border: 1px solid rgba(99, 102, 241, 0.3);
+        box-shadow: var(--shadow-sm);
       }
 
       .file-details {
@@ -191,8 +195,8 @@
 
     .upload-btn {
       width: 100%;
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      color: white;
+      background: var(--bg-primary);
+      color: var(--accent-secondary);
       border: none;
       padding: 1rem;
       border-radius: var(--radius-md);
@@ -200,16 +204,22 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      box-shadow: var(--shadow-md);
 
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        box-shadow: var(--shadow-lg);
+        color: var(--accent-primary);
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: var(--shadow-inset);
       }
 
       &:disabled {
         background: var(--bg-tertiary);
-        opacity: 0.7;
+        color: var(--text-muted);
         cursor: not-allowed;
         box-shadow: none;
       }

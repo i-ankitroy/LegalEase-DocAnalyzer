@@ -1,20 +1,32 @@
 /* Global CSS Variables and Reset */
 :root {
-  /* Core Colors - Dark Slate & Neon Accent Theme */
-  --bg-primary: #0f111a;
-  --bg-secondary: #1a1d2e;
-  --bg-tertiary: #252a41;
+  /* Core Colors - Neumorphism White & Golden Theme */
+  --bg-primary: #e0e5ec;
+  --bg-secondary: #e6ebf2;
+  --bg-tertiary: #d1d9e6;
   
-  --accent-primary: #6366f1; /* Indigo */
-  --accent-secondary: #8b5cf6; /* Purple */
-  --accent-glow: rgba(99, 102, 241, 0.4);
+  --accent-primary: #f5c518; /* Brighter Golden */
+  --accent-secondary: #d4af37; /* Original Gold */
+  --accent-glow: rgba(245, 197, 24, 0.5);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #4a4a4a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
   
-  --border-light: rgba(255, 255, 255, 0.1);
-  --border-glow: rgba(99, 102, 241, 0.3);
+  /* Neumorphic Shadows */
+  /* Outer (Raised) */
+  --shadow-sm: 4px 4px 8px #a3b1c6, -4px -4px 8px #ffffff;
+  --shadow-md: 9px 9px 16px rgba(163, 177, 198, 0.6), -9px -9px 16px rgba(255, 255, 255, 0.5);
+  --shadow-lg: 12px 12px 24px rgba(163, 177, 198, 0.6), -12px -12px 24px rgba(255, 255, 255, 0.5);
+  
+  /* Inner (Pressed) */
+  --shadow-inset: inset 6px 6px 10px 0 rgba(163, 177, 198, 0.5), inset -6px -6px 10px 0 rgba(255, 255, 255, 0.8);
+  --shadow-inset-accent: inset 4px 4px 10px 0 rgba(245, 197, 24, 0.4), inset -4px -4px 10px 0 rgba(255, 255, 255, 0.7);
+  
+  --shadow-gold-inset: inset 3px 3px 8px rgba(180, 140, 10, 0.6), inset -3px -3px 8px rgba(255, 230, 70, 0.9);
+  --shadow-gold-sm: 4px 4px 8px rgba(180, 140, 10, 0.4), -4px -4px 8px rgba(255, 230, 70, 0.7);
+
+  --border-glow: rgba(245, 197, 24, 0.4);
   
   --error: #ef4444;
   --success: #10b981;
@@ -38,15 +50,25 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
+}
 
-  /* Shadows & Glass */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 15px var(--accent-glow);
+[data-theme="dark"] {
+  --bg-primary: #2a2d34;
+  --bg-secondary: #31353d;
+  --bg-tertiary: #3a3f48;
   
-  --glass-bg: rgba(26, 29, 46, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #e0e5ec;
+  --text-secondary: #a3b1c6;
+  --text-muted: #6b7280;
+  
+  --shadow-sm: 4px 4px 8px #202228, -4px -4px 8px #343840;
+  --shadow-md: 9px 9px 16px rgba(32, 34, 40, 0.8), -9px -9px 16px rgba(52, 56, 64, 0.6);
+  --shadow-lg: 12px 12px 24px rgba(32, 34, 40, 0.8), -12px -12px 24px rgba(52, 56, 64, 0.6);
+  --shadow-inset: inset 6px 6px 10px 0 rgba(32, 34, 40, 0.8), inset -6px -6px 10px 0 rgba(52, 56, 64, 0.6);
+  --shadow-inset-accent: inset 4px 4px 10px 0 rgba(245, 197, 24, 0.3), inset -4px -4px 10px 0 rgba(52, 56, 64, 0.6);
+
+  --shadow-gold-inset: inset 3px 3px 8px rgba(120, 90, 0, 0.8), inset -3px -3px 8px rgba(255, 200, 50, 0.4);
+  --shadow-gold-sm: 4px 4px 8px rgba(12, 14, 20, 0.6), -4px -4px 8px rgba(32, 36, 44, 0.4);
 }
 
 /* Base Reset */
@@ -76,10 +98,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
-  background-attachment: fixed;
+  background-color: var(--bg-primary);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -123,14 +142,14 @@ input, textarea, select {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-inset);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--bg-tertiary);
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-light);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -138,12 +157,12 @@ input, textarea, select {
 }
 
 /* Global Utilities */
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+.glass-panel, .neumorphic-panel {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
+  border: none;
+  /* Retaining glass-panel class name for drop-in compatibility, but styling is neumorphic */
 }
 
 .gradient-text {
@@ -155,11 +174,11 @@ input, textarea, select {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
+  background: var(--bg-primary);
+  color: var(--accent-secondary);
   padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  font-weight: 500;
+  border-radius: var(--radius-full);
+  font-weight: 600;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
@@ -167,40 +186,29 @@ input, textarea, select {
   gap: 0.5rem;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid transparent;
 }
 
 .btn-primary:hover {
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
 }
 
 .btn-primary:active {
+  box-shadow: var(--shadow-inset);
   transform: translateY(0);
 }
 
-.btn-primary::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.btn-primary:hover::after {
-  left: 100%;
-}
-
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-primary);
   color: var(--text-primary);
   padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   font-weight: 500;
-  border: 1px solid var(--border-light);
+  border: none;
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
@@ -209,9 +217,14 @@ input, textarea, select {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-md);
+  color: var(--accent-primary);
   transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  box-shadow: var(--shadow-inset);
+  transform: translateY(0);
 }
 
 /* Animations */
@@ -221,9 +234,9 @@ input, textarea, select {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
 }
 
 @keyframes spin {

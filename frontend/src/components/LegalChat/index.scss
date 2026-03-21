@@ -9,9 +9,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--bg-secondary);
 
     h1 {
       font-size: 28px;
@@ -59,15 +59,13 @@
 
   .messages-container {
     flex: 1;
-    background: rgba(15, 17, 26, 0.6);
-    backdrop-filter: blur(10px);
+    background: var(--bg-primary);
     overflow-y: auto;
     padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
-    border-left: 1px solid var(--glass-border);
-    border-right: 1px solid var(--glass-border);
+    border: none;
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -93,15 +91,15 @@
         justify-content: center;
         font-size: 1.25rem;
         flex-shrink: 0;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow-sm);
       }
 
       .message-content {
         padding: 1.25rem;
         border-radius: var(--radius-lg);
-        background: var(--glass-bg);
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        background: var(--bg-primary);
+        border: none;
+        box-shadow: var(--shadow-sm);
         line-height: 1.6;
         color: var(--text-primary);
         white-space: pre-wrap;
@@ -135,21 +133,24 @@
         flex-direction: row-reverse;
 
         .message-icon {
-          background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-          color: white;
+          background: var(--bg-primary);
+          color: var(--accent-primary);
+          box-shadow: var(--shadow-inset);
         }
 
         .message-content {
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-          border-color: rgba(99, 102, 241, 0.3);
+          background: var(--bg-primary);
+          border: none;
+          box-shadow: var(--shadow-inset);
           border-top-right-radius: 4px;
         }
       }
 
       &.assistant {
         .message-icon {
-          background: linear-gradient(135deg, #10b981, #059669);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--bg-primary);
+          color: #10b981;
+          border: none;
         }
 
         .message-content {
@@ -160,31 +161,30 @@
   }
 
   .chat-input-form {
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
+    background: var(--bg-primary);
+    border: none;
     padding: var(--spacing-lg);
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     display: flex;
     gap: var(--spacing-md);
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-inset);
 
     .chat-input {
       flex: 1;
       padding: 1rem 1.25rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: none;
       border-radius: var(--radius-lg);
       font-family: inherit;
       font-size: 1rem;
-      background: rgba(0, 0, 0, 0.3);
+      background: var(--bg-primary);
+      box-shadow: var(--shadow-inset);
       color: var(--text-primary);
       transition: all 0.3s ease;
 
       &:focus {
         outline: none;
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        background: rgba(0, 0, 0, 0.4);
+        box-shadow: var(--shadow-inset), 0 0 0 3px rgba(212, 175, 55, 0.15);
+        background: var(--bg-secondary);
       }
 
       &::placeholder {
@@ -194,23 +194,29 @@
 
     .send-btn {
       padding: 0 1.5rem;
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      color: white;
+      background: var(--bg-primary);
+      color: var(--accent-secondary);
       border: none;
       border-radius: var(--radius-lg);
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      box-shadow: var(--shadow-sm);
 
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        box-shadow: var(--shadow-md);
+        color: var(--accent-primary);
+      }
+      
+      &:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: var(--shadow-inset);
       }
 
       &:disabled {
         background: var(--bg-tertiary);
-        opacity: 0.5;
+        color: var(--text-muted);
         cursor: not-allowed;
         box-shadow: none;
       }

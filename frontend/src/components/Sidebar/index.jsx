@@ -1,6 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { signOut, getHistory, deleteSession } from '../../utils/api'
+import ThemeToggle from '../ThemeToggle'
 import './index.scss'
 
 const Sidebar = () => {
@@ -125,8 +126,9 @@ const Sidebar = () => {
 
       <div className="sidebar-footer">
         <button className="logout-btn" onClick={handleLogout} disabled={loggingOut}>
-          <span>🚪</span> {loggingOut ? 'Logging out...' : 'Logout'}
+          <span>🚪</span> {loggingOut ? 'Logging...' : 'Logout'}
         </button>
+        <ThemeToggle isFixed={false} />
       </div>
     </div>
   )

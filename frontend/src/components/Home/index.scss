@@ -12,9 +12,7 @@
     width: 100%;
     margin: 0 auto;
     text-align: center;
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
+    background: var(--bg-primary);
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-lg);
@@ -27,7 +25,7 @@
     h1 {
       font-size: clamp(2rem, 4vw, 3.5rem);
       margin-bottom: var(--spacing-md);
-      background: linear-gradient(135deg, #fff, var(--text-secondary));
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -51,40 +49,42 @@
       margin-bottom: var(--spacing-2xl);
 
       .feature-card {
-        padding: var(--spacing-xl);
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-lg);
+        padding: var(--spacing-2xl) var(--spacing-xl);
+        background: var(--bg-primary);
+        border: none;
+        border-radius: var(--radius-xl);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
+        box-shadow: var(--shadow-sm);
 
         &:hover {
-          transform: translateY(-8px);
-          background: rgba(255, 255, 255, 0.04);
-          border-color: rgba(99, 102, 241, 0.3);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          transform: translateY(-4px);
+          box-shadow: var(--shadow-md);
 
           .feature-icon {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            transform: scale(1.1);
+            background: var(--bg-secondary);
+            box-shadow: var(--shadow-inset);
           }
         }
 
         .feature-icon {
           font-size: 2.5rem;
           margin-bottom: var(--spacing-lg);
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+          background: var(--bg-primary);
+          color: var(--accent-primary);
           width: 80px;
           height: 80px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 20px;
-          border: 1px solid rgba(99, 102, 241, 0.3);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          border-radius: 50%;
+          box-shadow: var(--shadow-sm);
+          border: none;
+          transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
 
         h3 {
@@ -102,8 +102,8 @@
     }
 
     .cta-button {
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      color: white;
+      background: var(--bg-primary);
+      color: var(--accent-secondary);
       border: none;
       padding: 1.25rem 3rem;
       font-size: 1.25rem;
@@ -111,7 +111,7 @@
       border-radius: var(--radius-full);
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      box-shadow: var(--shadow-md);
       display: inline-flex;
       align-items: center;
       gap: var(--spacing-sm);
@@ -123,8 +123,8 @@
 
       &:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
-
+        box-shadow: var(--shadow-lg);
+        color: var(--accent-primary);
         &::after {
           transform: translateX(4px);
         }
@@ -132,6 +132,7 @@
 
       &:active {
         transform: translateY(0);
+        box-shadow: var(--shadow-inset);
       }
     }
   }
