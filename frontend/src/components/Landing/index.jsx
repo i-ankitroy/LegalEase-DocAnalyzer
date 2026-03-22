@@ -34,12 +34,14 @@ const Landing = ({ isAuthenticated = false, loading = false }) => {
     <div className="landing">
       <ThemeToggle />
       
-      {/* Static Background Objects (Performance Optimized) */}
-      <div className="dynamic-bg-glow glow-1" />
-      <div className="dynamic-bg-glow glow-2" />
-      <div className="dynamic-bg-glow glow-3" />
-      <div className="dynamic-bg-glow glow-4" />
-      <div className="dynamic-bg-glow glow-5" />
+      {/* Static Background Objects (Performance Optimized & Isolated) */}
+      <div className="landing-bg-wrapper">
+        <div className="dynamic-bg-glow glow-1" />
+        <div className="dynamic-bg-glow glow-2" />
+        <div className="dynamic-bg-glow glow-3" />
+        <div className="dynamic-bg-glow glow-4" />
+        <div className="dynamic-bg-glow glow-5" />
+      </div>
 
       {/* Hero Section */}
       <section className="hero">
