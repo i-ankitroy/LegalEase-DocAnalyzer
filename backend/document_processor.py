@@ -3,6 +3,10 @@ from PyPDF2 import PdfReader
 from docx import Document
 import chromadb
 import ollama
+import logging
+from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
 
 # Initialize ChromaDB client (persistent storage)
 CHROMA_DB_DIR = "chromadb_storage"
@@ -98,29 +102,38 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[di
     return chunks
 
 
-def get_ollama_embeddings(texts: list[str]) -> list[list[float]]:
+def get_embeddings(texts: list[str], max_workers: int = 5) -> list[list[float]]:
     """
-    Generate embeddings using Ollama's nomic-embed-text model
-    
-    Args:
-        texts: List of text strings to embed
-    
-    Returns:
-        List of embedding vectors
+    Generate embeddings for text chunks in parallel.
+    Currently utilizes local model; easily swappable for cloud providers.
     """
-    embeddings = []
-    
-    for text in texts:
+    if not texts:
+        return []
+
+    def get_single_embedding(text):
         try:
             response = ollama.embeddings(
                 model="nomic-embed-text",
                 prompt=text
             )
-            embeddings.append(response['embedding'])
+            return response['embedding']
         except Exception as e:
-            raise Exception(f"Error generating embedding: {str(e)}")
-    
-    return embeddings
+            logger.error(f"Error generating single embedding: {str(e)}")
+            raise
+
+    # For small batches, threading overhead isn't worth it
+    if len(texts) <= 2:
+        return [get_single_embedding(t) for t in texts]
+
+    # Use ThreadPoolExecutor for parallel processing
+    # Max workers is restricted to balance speed and local machine load
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        try:
+            results = list(executor.map(get_single_embedding, texts))
+            return results
+        except Exception as e:
+            logger.error(f"Global parallel embedding failure: {str(e)}")
+            raise Exception(f"Error generating parallel embeddings: {str(e)}")
 
 
 def store_document_in_chromadb(document_id: str, text: str, filename: str) -> int:
@@ -161,8 +174,8 @@ def store_document_in_chromadb(document_id: str, text: str, filename: str) -> in
             for chunk in chunks
         ]
         
-        # Generate embeddings using Ollama
-        embeddings = get_ollama_embeddings(chunk_texts)
+        # Generate embeddings
+        embeddings = get_embeddings(chunk_texts)
         
         # Store in ChromaDB
         collection.add(
@@ -195,7 +208,7 @@ def query_document(document_id: str, question: str, n_results: int = 3) -> list[
         collection = chroma_client.get_collection(name=f"doc_{document_id}")
         
         # Generate embedding for the question
-        question_embedding = get_ollama_embeddings([question])[0]
+        question_embedding = get_embeddings([question])[0]
         
         # Query ChromaDB
         results = collection.query(

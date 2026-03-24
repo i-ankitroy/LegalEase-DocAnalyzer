@@ -10,3 +10,4 @@ chromadb
 bcrypt==4.1.2
 python-dotenv==1.0.0
 slowapi==0.1.9
+groq

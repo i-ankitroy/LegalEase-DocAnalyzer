@@ -2,21 +2,23 @@ import os
 import uuid
 import sqlite3
 import logging
+import json
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
+load_dotenv()
 
 from document_processor import extract_text_from_file, store_document_in_chromadb, delete_document_from_chromadb
-from ollama_handler import chat_with_document, analyze_document_for_flags, suggest_alternative
+from ai_handler import chat_with_document, analyze_document_for_flags, suggest_alternative, get_available_models
 from legal_handler import LegalHandler
 from auth import (
     UserSignUp, UserSignIn,
@@ -24,8 +26,6 @@ from auth import (
     get_current_user, verify_token, init_db,
     ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 )
-
-load_dotenv()
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -239,6 +239,7 @@ class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
     session_id: Optional[str] = None
+    stream: bool = Field(default=True)
 
     @field_validator("question")
     @classmethod
@@ -263,6 +264,7 @@ class AnalyzeRequest(BaseModel):
     document_id: str = Field(..., min_length=36, max_length=36, pattern=r"^[0-9a-f-]+$")
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
     session_id: Optional[str] = None
+    stream: bool = Field(default=True)
 
 
 class SuggestAlternativeRequest(BaseModel):
@@ -424,10 +426,13 @@ async def upload_document(
             f.write(content)
 
         # ── Extract text ───────────────────────────────────────────────────
-        text = extract_text_from_file(file_path, safe_filename)
-        if not text:
+        try:
+            text = extract_text_from_file(file_path, safe_filename)
+            if not text:
+                raise Exception("Could not extract text from file.")
+        except Exception as e:
             os.remove(file_path)
-            raise HTTPException(status_code=400, detail="Could not extract text from file.")
+            raise HTTPException(status_code=400, detail=str(e))
 
         # ── Store in ChromaDB ──────────────────────────────────────────────
         num_chunks = store_document_in_chromadb(doc_id, text, safe_filename)
@@ -475,10 +480,28 @@ async def chat(
         # Save user message
         _save_message(session_id, "user", req.question)
 
+        if req.stream:
+            content_generator = chat_with_document(
+                document_id=req.document_id,
+                question=req.question,
+                model=req.model,
+                stream=True
+            )
+            # For streaming, we need a way to pass metadata.
+            # We'll use a simple format: event: metadata \n\n data: chunk \n\n
+            def generate():
+                # Yield session_id first as metadata
+                yield f"METADATA:{json.dumps({'session_id': session_id, 'document_id': req.document_id})}\n\n"
+                for chunk in content_generator:
+                    yield chunk
+            
+            return StreamingResponse(generate(), media_type="text/plain")
+
         response = chat_with_document(
             document_id=req.document_id,
             question=req.question,
-            model=req.model
+            model=req.model,
+            stream=False
         )
 
         # Save assistant message
@@ -557,19 +580,29 @@ async def analyze_document_endpoint(
     if doc["user_email"] != current_user["email"]:
         raise HTTPException(status_code=403, detail="Access denied.")
     try:
-        result = analyze_document_for_flags(req.document_id, req.model)
-
         # ── Handle History Session ─────────────────────────────────────────
         session_id = req.session_id
         if not session_id:
             session_id = str(uuid.uuid4())
             title = "Document Analysis"
             _create_session(session_id, current_user["email"], req.document_id, doc["filename"], title)
-            
-            # Save the analysis summary as the first assistant message
-            # We don't save the red flags block itself as a message, just the summary, 
-            # to seed the chat context properly if they look at history later.
-            _save_message(session_id, "assistant", f"**Analysis Summary:**\n{result['summary']}")
+
+        if req.stream:
+            content_gen = analyze_document_for_flags(req.document_id, req.model, stream=True)
+            def generate():
+                yield f"METADATA:{json.dumps({'session_id': session_id, 'document_id': req.document_id})}\n\n"
+                for chunk in content_gen:
+                    yield chunk
+            return StreamingResponse(generate(), media_type="text/plain")
+
+        result = analyze_document_for_flags(req.document_id, req.model, stream=False)
+
+        # Save the analysis summary as the first assistant message if not streaming
+        # (If streaming, saving the summary would require intercepting the stream end,
+        # which is complex. For now, we only save the first message in non-streaming mode,
+        # or the frontend handles subsequent chat history.)
+        if req.session_id is None:
+            _save_message(session_id, "assistant", f"**Analysis Summary:**\n{result.get('summary', 'Analysis Complete')}")
 
         return {
             "document_id": req.document_id,
@@ -710,9 +743,8 @@ async def delete_document(
 @app.get("/models")
 async def list_models(current_user: dict = Depends(get_current_user)):
     try:
-        import ollama
-        models = ollama.list()
-        return {"models": [model["name"] for model in models["models"]]}
+        # Return the Groq models we support in ai_handler
+        return {"models": get_available_models()}
     except Exception as e:
         logger.error(f"List models error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Could not retrieve model list.")

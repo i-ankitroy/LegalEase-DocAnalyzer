@@ -107,9 +107,64 @@ export const chatWithDocument = async (documentId, question, model = 'llama3.2',
       document_id: documentId, 
       question, 
       model,
+      stream: false,
       ...(sessionId && { session_id: sessionId })
     }),
   })
+
+export const chatWithDocumentStream = async (documentId, question, onChunk, signal = null, model = 'llama3.2', sessionId = null) => {
+  const config = {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...(signal && { signal }),
+    body: JSON.stringify({
+      document_id: documentId,
+      question,
+      model,
+      stream: true,
+      ...(sessionId && { session_id: sessionId })
+    }),
+  }
+
+  const response = await fetch(`${API_BASE_URL}/chat`, config)
+  if (!response.ok) {
+    const data = await response.json()
+    throw new Error(data.detail || 'Streaming failed')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    
+    const chunk = decoder.decode(value, { stream: true })
+    buffer += chunk
+
+    // Handle METADATA prefix if present in the first chunk
+    if (buffer.startsWith('METADATA:')) {
+      const parts = buffer.split('\n\n')
+      if (parts.length > 1) {
+        const metadataStr = parts[0].replace('METADATA:', '')
+        try {
+          const metadata = JSON.parse(metadataStr)
+          onChunk({ type: 'metadata', data: metadata })
+          buffer = parts.slice(1).join('\n\n')
+        } catch (e) {
+          console.error("Failed to parse metadata", e)
+        }
+      }
+    }
+
+    if (buffer) {
+      onChunk({ type: 'text', data: buffer })
+      buffer = '' // for simple text streaming, we yield everything we have
+    }
+  }
+}
 
 export const legalChat = async (message) =>
   apiRequest('/api/legal/chat', {
@@ -135,9 +190,57 @@ export const analyzeDocument = async (documentId, model = 'llama3.2', sessionId 
     body: JSON.stringify({
       document_id: documentId,
       model,
+      stream: false,
       ...(sessionId && { session_id: sessionId })
     }),
   })
+
+export const analyzeDocumentStream = async (documentId, onChunk, signal = null, model = 'llama3.2', sessionId = null) => {
+  const config = {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...(signal && { signal }),
+    body: JSON.stringify({
+      document_id: documentId,
+      model,
+      stream: true,
+      ...(sessionId && { session_id: sessionId })
+    }),
+  }
+
+  const response = await fetch(`${API_BASE_URL}/analyze`, config)
+  if (!response.ok) {
+    const data = await response.json()
+    throw new Error(data.detail || 'Analysis stream failed')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let fullJSON = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    
+    const chunk = decoder.decode(value, { stream: true })
+    if (chunk.startsWith('METADATA:')) {
+      const parts = chunk.split('\n\n')
+      const metadataStr = parts[0].replace('METADATA:', '')
+      try {
+        const metadata = JSON.parse(metadataStr)
+        onChunk({ type: 'metadata', data: metadata })
+      } catch(e) {}
+      fullJSON += parts.slice(1).join('\n\n')
+    } else {
+      fullJSON += chunk
+    }
+
+    // Attempt to parse partially to show progress
+    // This is hard for complex JSON, so we'll just yield the text for now
+    onChunk({ type: 'partial_json', data: fullJSON })
+  }
+}
 
 export const suggestAlternative = async (documentId, redFlagTitle, redFlagExcerpt, redFlagIssue, model = 'llama3.2', sessionId = null) =>
   apiRequest('/suggest-alternative', {

@@ -1,9 +1,13 @@
-import ollama
+import os
 from typing import Generator
+from dotenv import load_dotenv
+load_dotenv()
+from groq import Groq
 
 class LegalHandler:
-    def __init__(self, model_name: str = "llama2"):
-        self.model_name = model_name
+    def __init__(self, model_name: str = "llama-3.1-8b-instant"):
+        self.model_name = "llama-3.1-8b-instant" if "llama" in model_name.lower() else model_name
+        self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.system_prompt = """You are a helpful legal information assistant. You provide general legal information and guidance, but you are NOT a lawyer and do not provide official legal advice.
 
 Important guidelines:
@@ -19,7 +23,7 @@ Always include a disclaimer in your responses when appropriate."""
     def chat(self, message: str) -> str:
         """Send a message and get a response"""
         try:
-            response = ollama.chat(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {
@@ -32,14 +36,14 @@ Always include a disclaimer in your responses when appropriate."""
                     }
                 ]
             )
-            return response['message']['content']
+            return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"Error in legal chat: {str(e)}")
 
     def chat_stream(self, message: str) -> Generator[str, None, None]:
         """Stream chat responses"""
         try:
-            stream = ollama.chat(
+            stream = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {
@@ -55,8 +59,8 @@ Always include a disclaimer in your responses when appropriate."""
             )
             
             for chunk in stream:
-                if 'message' in chunk and 'content' in chunk['message']:
-                    yield chunk['message']['content']
+                if chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
         except Exception as e:
             raise Exception(f"Error in legal chat stream: {str(e)}")
 
@@ -71,10 +75,10 @@ Always include a disclaimer in your responses when appropriate."""
                 }
             ] + messages
             
-            response = ollama.chat(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=full_messages
             )
-            return response['message']['content']
+            return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"Error in legal chat with history: {str(e)}")

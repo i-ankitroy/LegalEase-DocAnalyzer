@@ -1,10 +1,12 @@
 import os
 import json
+from dotenv import load_dotenv
+load_dotenv()
 from groq import Groq
 from document_processor import query_document
 
 # Initialize Groq client
-client = Groq(api_key=os.environ.get("GROQ_API_KEY", "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"))
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def _get_groq_model(model_name: str) -> str:
     # Always default to groq's fast model if a local model name is passed

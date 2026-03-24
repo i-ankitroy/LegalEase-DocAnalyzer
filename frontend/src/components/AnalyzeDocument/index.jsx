@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { analyzeDocument, suggestAlternative, chatWithDocument, getSession } from '../../utils/api'
+import { analyzeDocument, analyzeDocumentStream, suggestAlternative, chatWithDocument, chatWithDocumentStream, getSession } from '../../utils/api'
 import './index.scss'
 
 const SEVERITY_CONFIG = {
@@ -27,6 +27,8 @@ const AnalyzeDocument = () => {
   const [summary,    setSummary]    = useState('')
   const [redFlags,   setRedFlags]   = useState([])
   const [analyzeErr, setAnalyzeErr] = useState(null)
+  const [streamingLog, setStreamingLog] = useState('')
+  const [abortController, setAbortController] = useState(null)
 
   // per-flag alternatives state  { index: { loading, text, shown } }
   const [alternatives, setAlternatives] = useState({})
@@ -92,19 +94,46 @@ const AnalyzeDocument = () => {
     setRedFlags([])
     setSummary('')
     setAlternatives({})
+    setStreamingLog('Starting deep scan...')
 
     try {
-      const data = await analyzeDocument(documentId, 'llama3.2', currentSessionId)
-      setSummary(data.summary)
-      setRedFlags(data.red_flags || [])
-      setAnalyzed(true)
-      if (data.session_id) {
-        setCurrentSessionId(data.session_id)
-        // Update URL quietly so sharing/refreshing keeps the session
-        navigate(`/analyze-document?session_id=${data.session_id}`, { replace: true })
+      const controller = new AbortController()
+      setAbortController(controller)
+
+      let finalJSON = ''
+      await analyzeDocumentStream(
+        documentId,
+        (chunk) => {
+          if (chunk.type === 'metadata') {
+            if (chunk.data.session_id && !currentSessionId) {
+              setCurrentSessionId(chunk.data.session_id)
+              navigate(`/analyze-document?session_id=${chunk.data.session_id}`, { replace: true })
+            }
+          } else if (chunk.type === 'partial_json') {
+            finalJSON = chunk.data
+            // Show a tiny bit of the stream so user knows it's working
+            setStreamingLog(`Analyzing document structure... ${finalJSON.length} chars processed.`)
+          }
+        },
+        controller.signal,
+        'llama3.2',
+        currentSessionId
+      )
+
+      // Once finished, parse the final JSON
+      try {
+        const data = JSON.parse(finalJSON)
+        setSummary(data.summary || 'Analysis complete.')
+        setRedFlags(data.red_flags || [])
+        setAnalyzed(true)
+      } catch (e) {
+        console.error("Failed to parse analysis JSON", e)
+        setAnalyzeErr("The AI generated a response that couldn't be parsed. Please try again.")
       }
     } catch (err) {
-      if (err.message === 'Access denied.' || err.message === 'Document not found.') {
+      if (err.name === 'AbortError') {
+        setAnalyzeErr("Analysis canceled by user.")
+      } else if (err.message === 'Access denied.' || err.message === 'Document not found.') {
         localStorage.removeItem('currentDocumentId')
         localStorage.removeItem('currentDocumentName')
         navigate('/upload')
@@ -113,6 +142,8 @@ const AnalyzeDocument = () => {
       }
     } finally {
       setAnalyzing(false)
+      setStreamingLog('')
+      setAbortController(null)
     }
   }
 
@@ -154,18 +185,47 @@ const AnalyzeDocument = () => {
     const userMsg = chatInput.trim()
     setChatInput('')
     setChatError(null)
+    
+    // Add user message
     setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+    
+    // Add empty assistant message to be filled by stream
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+    
     setChatLoading(true)
 
     try {
-      const data = await chatWithDocument(documentId, userMsg, 'llama3.2', currentSessionId)
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
-      if (data.session_id && !currentSessionId) {
-        setCurrentSessionId(data.session_id)
-        navigate(`/analyze-document?session_id=${data.session_id}`, { replace: true })
-      }
+      let currentContent = ''
+      await chatWithDocumentStream(
+        documentId, 
+        userMsg, 
+        (chunk) => {
+          if (chunk.type === 'metadata') {
+            if (chunk.data.session_id && !currentSessionId) {
+              setCurrentSessionId(chunk.data.session_id)
+              navigate(`/analyze-document?session_id=${chunk.data.session_id}`, { replace: true })
+            }
+          } else if (chunk.type === 'text') {
+            currentContent += chunk.data
+            // Update the last message in the list
+            setMessages(prev => {
+              const newMsgs = [...prev]
+              newMsgs[newMsgs.length - 1] = { 
+                ...newMsgs[newMsgs.length - 1], 
+                content: currentContent 
+              }
+              return newMsgs
+            })
+          }
+        },
+        null,
+        'llama3.2',
+        currentSessionId
+      )
     } catch (err) {
       setChatError(err.message || 'Failed to get a response.')
+      // Remove the empty assistant bubble on error
+      setMessages(prev => prev.slice(0, -1))
     } finally {
       setChatLoading(false)
     }
@@ -205,9 +265,20 @@ const AnalyzeDocument = () => {
                 <span className="analyzing-icon">⚖️</span>
                 <div>
                   <p className="analyzing-title">Analyzing document…</p>
-                  <p className="analyzing-sub">This may take 30–60 seconds depending on document length</p>
+                  <p className="analyzing-sub">{streamingLog || 'This may take 30–60 seconds depending on document length'}</p>
                 </div>
               </div>
+              <button 
+                className="cancel-btn error"
+                onClick={() => {
+                  if (abortController) {
+                    abortController.abort()
+                  }
+                }}
+                style={{ marginTop: '1rem', background: 'transparent', border: '1px solid var(--text-error)', color: 'var(--text-error)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Cancel Analysis
+              </button>
             </div>
           ) : (
             <button className="start-btn" onClick={handleAnalyze}>
