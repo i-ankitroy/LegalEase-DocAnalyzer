@@ -1,6 +1,6 @@
 .home {
-  padding: var(--spacing-xl);
-  min-height: 100%;
+  padding: var(--spacing-lg);
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,13 +8,19 @@
   z-index: 1;
 
   .home-content {
-    max-width: 1000px;
+    max-width: 950px;
     width: 100%;
+    min-height: 85%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-height: 100%;
+    overflow-y: auto;
     margin: 0 auto;
     text-align: center;
     background: var(--bg-primary);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-xl);
     box-shadow: var(--shadow-lg);
     animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -23,7 +29,7 @@
     }
 
     h1 {
-      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-size: clamp(1.8rem, 3.5vw, 2.75rem);
       margin-bottom: var(--spacing-md);
       background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       -webkit-background-clip: text;
@@ -33,7 +39,7 @@
     }
 
     .subtitle {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       color: var(--text-secondary);
       margin-bottom: var(--spacing-2xl);
       max-width: 600px;
@@ -44,12 +50,12 @@
 
     .features {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: var(--spacing-xl);
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--spacing-lg);
       margin-bottom: var(--spacing-2xl);
 
       .feature-card {
-        padding: var(--spacing-2xl) var(--spacing-xl);
+        padding: var(--spacing-xl) var(--spacing-lg);
         background: var(--bg-primary);
         border: none;
         border-radius: var(--radius-xl);
@@ -72,12 +78,12 @@
         }
 
         .feature-icon {
-          font-size: 2.5rem;
+          font-size: 2.2rem;
           margin-bottom: var(--spacing-lg);
           background: var(--bg-primary);
           color: var(--accent-primary);
-          width: 80px;
-          height: 80px;
+          width: 70px;
+          height: 70px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -88,7 +94,7 @@
         }
 
         h3 {
-          font-size: 1.25rem;
+          font-size: 1.2rem;
           margin-bottom: var(--spacing-sm);
           color: var(--text-primary);
         }
@@ -96,7 +102,7 @@
         p {
           color: var(--text-secondary);
           font-size: 0.95rem;
-          line-height: 1.5;
+          line-height: 1.6;
         }
       }
     }
@@ -104,16 +110,24 @@
     .cta-button {
       background: var(--bg-primary);
       color: var(--accent-secondary);
-      border: none;
-      padding: 1.25rem 3rem;
-      font-size: 1.25rem;
-      font-weight: 600;
+      border: 4px solid var(--accent-primary);
+      background: var(--bg-primary);
+
+      [data-theme="dark"] & {
+        border-color: transparent;
+        background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                    linear-gradient(135deg, #fff199 0%, #d4af37 25%, #664800 50%, #d4af37 75%, #fff8dc 100%) border-box;
+      }
+      padding: 1rem 2.5rem;
+      font-size: 1.15rem;
+      font-weight: 700;
       border-radius: var(--radius-full);
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-md), 0 0 15px rgba(245, 197, 24, 0.4);
       display: inline-flex;
       align-items: center;
+      align-self: center;
       gap: var(--spacing-sm);
 
       &::after {
@@ -123,7 +137,7 @@
 
       &:hover {
         transform: translateY(-3px);
-        box-shadow: var(--shadow-lg);
+        box-shadow: var(--shadow-lg), 0 0 25px rgba(245, 197, 24, 0.7);
         color: var(--accent-primary);
         &::after {
           transform: translateX(4px);
@@ -132,7 +146,7 @@
 
       &:active {
         transform: translateY(0);
-        box-shadow: var(--shadow-inset);
+        box-shadow: var(--shadow-inset), 0 0 10px rgba(245, 197, 24, 0.3);
       }
     }
   }

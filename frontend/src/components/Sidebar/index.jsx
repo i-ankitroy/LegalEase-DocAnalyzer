@@ -11,6 +11,7 @@ const Sidebar = () => {
   const [loggingOut, setLoggingOut] = useState(false)
   const [history, setHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const fetchHistory = async () => {
     try {
@@ -69,33 +70,46 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <button 
+        className="collapse-toggle-btn" 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+      >
+        {isCollapsed ? '❯' : '❮'}
+      </button>
+
       <div className="sidebar-header">
-        <h2>LegalEase</h2>
-        {user && (
+        {isCollapsed ? (
+          <img src="/logo.png" alt="LegalEase Logo" className="brand-logo-collapsed" />
+        ) : (
+          <h2>LegalEase</h2>
+        )}
+        {user && !isCollapsed && (
           <p className="user-greeting">Hello, {user.full_name?.split(' ')[0] || 'User'}!</p>
         )}
       </div>
 
       <nav className="sidebar-nav">
-        <NavLink to="/home" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span>🏠</span> Home
+        <NavLink to="/home" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} title="Home">
+          <span>🏠</span> {!isCollapsed && "Home"}
         </NavLink>
-        <NavLink to="/upload" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span>📤</span> Upload
+        <NavLink to="/upload" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} title="Upload">
+          <span>📤</span> {!isCollapsed && "Upload"}
         </NavLink>
-        <NavLink to="/analyze-document" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span>🔍</span> Analyze Document
+        <NavLink to="/analyze-document" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} title="Analyze Document">
+          <span>🔍</span> {!isCollapsed && "Analyze Document"}
         </NavLink>
-        <NavLink to="/legal-advice" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span>⚖️</span> Legal Advice
+        <NavLink to="/legal-advice" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} title="Legal Advice">
+          <span>⚖️</span> {!isCollapsed && "Legal Advice"}
         </NavLink>
       </nav>
 
-      <div className="history-section">
-        <h3>Recent History</h3>
-        {loadingHistory ? (
-          <p className="history-empty">Loading...</p>
+      {!isCollapsed && (
+        <div className="history-section">
+          <h3>Recent History</h3>
+          {loadingHistory ? (
+            <p className="history-empty">Loading...</p>
         ) : history.length === 0 ? (
           <p className="history-empty">No recent chats.</p>
         ) : (
@@ -123,10 +137,11 @@ const Sidebar = () => {
           </div>
         )}
       </div>
+      )}
 
       <div className="sidebar-footer">
-        <button className="logout-btn" onClick={handleLogout} disabled={loggingOut}>
-          <span>🚪</span> {loggingOut ? 'Logging...' : 'Logout'}
+        <button className="logout-btn" onClick={handleLogout} disabled={loggingOut} title="Logout">
+          <span>🚪</span> {!isCollapsed && (loggingOut ? 'Logging...' : 'Logout')}
         </button>
         <ThemeToggle isFixed={false} />
       </div>

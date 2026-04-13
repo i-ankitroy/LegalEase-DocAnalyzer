@@ -1,5 +1,5 @@
 .auth-page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -56,7 +56,7 @@
   .auth-left {
     flex: 1;
     background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(197, 160, 89, 0.1) 100%);
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -129,7 +129,7 @@
 
   .auth-right {
     flex: 1;
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -216,20 +216,28 @@
       .submit-btn {
         width: 100%;
         padding: 1rem;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: white;
-        border: none;
+        background: var(--bg-primary);
+        color: var(--accent-secondary);
+        border: 3px solid var(--accent-primary);
+        background: var(--bg-primary);
+
+        [data-theme="dark"] & {
+          border-color: transparent;
+          background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                      linear-gradient(120deg, #fff199 0%, #d4af37 25%, #664800 50%, #d4af37 75%, #fff8dc 100%) border-box;
+        }
         border-radius: var(--radius-md);
         font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         margin-top: var(--spacing-md);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--shadow-sm), 0 0 10px rgba(245, 197, 24, 0.4);
 
         &:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: var(--shadow-md);
+          box-shadow: var(--shadow-md), 0 0 15px rgba(245, 197, 24, 0.6);
+          color: var(--accent-primary);
         }
 
         &:active:not(:disabled) {

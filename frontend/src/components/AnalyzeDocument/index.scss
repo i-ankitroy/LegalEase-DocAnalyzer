@@ -81,16 +81,23 @@
   font-weight: 600;
   background: var(--bg-primary);
   color: var(--accent-secondary);
-  border: none;
+  border: 3px solid var(--accent-primary);
+  background: var(--bg-primary);
+
+  [data-theme="dark"] & {
+    border-color: transparent;
+    background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                linear-gradient(135deg, #fff199 0%, #d4af37 25%, #664800 50%, #d4af37 75%, #fff8dc 100%) border-box;
+  }
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm), 0 0 10px rgba(245, 197, 24, 0.4);
   animation: pulse 2s infinite;
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md), 0 0 15px rgba(245, 197, 24, 0.6);
     color: var(--accent-primary);
   }
   &:active { 
@@ -111,7 +118,14 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 3px solid var(--accent-primary);
+  border: 4px solid var(--accent-primary);
+  background: var(--bg-primary);
+
+  [data-theme="dark"] & {
+    border-color: transparent;
+    background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                linear-gradient(135deg, #fff199 0%, #d4af37 25%, #664800 50%, #d4af37 75%, #fff8dc 100%) border-box;
+  }
   animation: ripple 1.5s ease-out infinite;
   position: absolute;
   top: 50%;

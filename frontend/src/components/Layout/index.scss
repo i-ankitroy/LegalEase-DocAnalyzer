@@ -41,6 +41,8 @@
   min-height: 0;        /* prevent flex child from overflowing */
   min-width: 0;
   height: 100%;
+  max-width: 1600px;    /* Prevent horizontal stretching */
+  margin: 0 auto;       /* Center the content block horizontally */
   display: flex;
   flex-direction: column;
   position: relative;
