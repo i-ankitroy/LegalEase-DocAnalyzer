@@ -1,278 +1,162 @@
-# DocuChat - AI Document Analyzer
+# LegalEase - Comprehensive Architecture & Workflow Map
 
-A Retrieval-Augmented Generation (RAG) system that allows users to upload documents and ask natural language questions about their content. DocuChat uses advanced semantic search and vector embeddings to provide accurate, context-aware answers while minimizing hallucinations.
+> [!IMPORTANT]  
+> **FOR FUTURE AI AGENTS:** This document is your foundational context map. Read this *first* to understand the application's entire frontend, backend, and data flow architecture. You do not need to spend tokens investigating individual project files unless you are directly modifying them.
 
-## Features
+---
 
-- **Multi-Format Document Support**: Upload and analyze PDFs, Word documents (DOCX), text files, and more
-- **Natural Language Q&A**: Ask questions in plain English and get accurate answers sourced directly from your documents
-- **RAG Architecture**: Implements retrieval-augmented generation with document chunking, embeddings, and semantic search
-- **User Authentication**: Secure login system with persistent user sessions
-- **Chat History**: Access previous conversations and document queries
-- **Source Attribution**: Answers include references to specific document sections, reducing hallucinations
-- **Multi-Document Support**: Query across multiple uploaded documents simultaneously
+## 1. Project Specifications
 
-## Tech Stack
+*   **App Name:** LegalEase
+*   **Purpose:** Premium, AI-powered legal document analysis and attorney-simulation chat platform.
+*   **Design Framework:** Neumorphic "Glass & Gold" UI (Pill-rounded borders, soft shadows, vibrant metallic accents in Dark Mode).
+*   **Frontend Stack:** React.js (Vite), React Router v6, vanilla SCSS with custom CSS variables.
+*   **Backend Stack:** Python FastApi, Uvicorn, SQLite, ChromaDB.
+*   **AI Engine:** Groq Cloud API (Llama 3 / Mixtral for instant inference speed). Note: All Groq calls use `temperature=0` to ensure highly deterministic outputs limit erratic legal hallucinations.
 
-**Frontend:**
-- React
-- SCSS
-- Vite
+---
 
-**Backend:**
-- FastAPI
-- Python 3.8+
-- LangChain
+## 2. Environment Variables Setup
 
-**Database & Vector Store:**
-- MongoDB (user auth & metadata)
-- Chroma (vector database for embeddings)
+Before running the backend, create a `.env` file in the `backend/` directory with the following structure:
 
-**AI/LLM:**
-- Sentence Transformers (embeddings)
-- LLM for natural language generation
-
-## Prerequisites
-
-- Python 3.8+
-- Node.js 16+
-- MongoDB (local or Atlas)
-
-## Installation
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/yourusername/docuchat.git
-cd docuchat
-```
-
-### 2. Backend Setup
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-Create a `.env` file in the `backend` directory:
 ```env
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/docuchat
-DATABASE_NAME=docuchat
+# Groq API Key for LLM Inference
+GROQ_API_KEY="gsk_your_groq_api_key_here"
 
-# JWT Configuration
-SECRET_KEY=your_secret_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# LLM Configuration
-LLM_API_URL=your_llm_api_url_here
-LLM_MODEL=your_model_name_here
-
-# Vector Store Configuration
-CHROMA_PERSIST_DIRECTORY=./chroma_db
-EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-
-# Server Configuration
-BACKEND_PORT=8000
-FRONTEND_URL=http://localhost:5173
-
-# Document Processing
-MAX_FILE_SIZE_MB=100
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
+# JWT Authentication Secrets
+SECRET_KEY="your_secure_randomly_generated_secret_string"
+ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES="15"
+REFRESH_TOKEN_EXPIRE_DAYS="7"
 ```
 
-### 3. Frontend Setup
-```bash
-cd ../frontend
-npm install
+---
+
+## 3. Directory Structure & Component Map
+
+```text
+d:\ProjectFiles\LegalEase\Dock_Chat\
+├── backend/
+│   ├── main.py                  # FastAPI router. Endpoints for Auth, Upload, Chat, Analyze. DB init.
+│   ├── ai_handler.py            # Interfaces with Groq API. Prompts & deterministic constraint parsing.
+│   ├── document_processor.py    # PyPDF extraction, text chunking, and ChromaDB vector ingestion.
+│   ├── auth.py                  # JWT Auth logic and SQLite user connection.
+│   ├── legal_handler.py         # Specific legal constraint parsing rules.
+│   ├── documents.db             # SQLite (Tables: documents, chat_sessions, chat_messages, analysis_cache)
+│   ├── users.db                 # SQLite (Table: users with hashed passwords)
+│   └── chromadb_storage/        # Local persistent Vector Store holding document embeddings.
+│
+└── frontend/
+    ├── public/
+    │   └── logo.png             # Dynamically styling branding.
+    └── src/
+        ├── App.jsx              # React Router core. Wraps routes in Auth protection.
+        ├── index.css            # GLOBAL SCSS variables: Colors, Neumorphism layout tokens, radii.
+        ├── utils/
+        │   └── api.js           # API fetch wrapper. Handles Auth headers & streaming decoders.
+        └── components/
+            ├── AppBranding/     # Shared LegalEase Logo and Theme typography component.
+            ├── ProtectedRoute/  # React Router barrier handling unauthenticated redirects.
+            ├── ThemeToggle/     # Dynamic Light/Dark mode switcher logic.
+            ├── Sidebar/         # Collapsible Navigation & Chat History panel.
+            ├── Layout/          # Flex-column shell. Mounts Sidebar + right-side Main Content.
+            ├── Landing/         # Unprotected promotional Hero page.
+            ├── SignIn/          # Authentication routing.
+            ├── SignUp/          # Authentication routing.
+            ├── Home/            # Dashboard landing view.
+            ├── Upload/          # Drag-and-drop document ingestion interface.
+            ├── LegalChat/       # Direct Legal LLM conversational agent interface.
+            └── AnalyzeDocument/ # Core analysis view. Includes:
+                ├── Streaming JSON logic
+                ├── SQLite Caching mechanism
+                ├── Red Flag Expansion & Rewrites
+                └── PDF Generation logic (jsPDF)
 ```
 
-## Running the Application
+---
 
-### 1. Start MongoDB
-Make sure MongoDB is running locally or your MongoDB Atlas connection is configured.
+## 4. Data & State Flow Graph
 
-### 2. Start Backend
-```bash
-cd backend
-uvicorn main:app --reload --port 8000
+This graph outlines the complete path of a document as it enters the system, is processed by the AI, rendered to the React UI, interacts with the caching system, and is eventually exported to PDF.
+
+```mermaid
+graph TD
+    %% Frontend Entities
+    Client[React Client]
+    UploadUI[Upload Component]
+    AnalyzeUI[AnalyzeDocument Component]
+    APIUtil[frontend/utils/api.js]
+
+    %% Backend Entitites
+    FastAPI[FastAPI / main.py]
+    DocEngine[document_processor.py]
+    AIEngine[ai_handler.py - Groq]
+    
+    %% Storage
+    Chroma[(ChromaDB Vector Store)]
+    SQLiteDoc[(SQLite documents.db)]
+
+    %% FLOW
+    Client --> UploadUI
+    UploadUI -->|1. File POST| FastAPI
+    FastAPI -->|2. Extract & Chunk| DocEngine
+    DocEngine -->|3. Store Vectors| Chroma
+    FastAPI -->|4. Return doc_id| Client
+    Client -->|5. Redirect| AnalyzeUI
+
+    AnalyzeUI -->|6. POST /analyze {force: false}| APIUtil
+    APIUtil -->|7. Check Cache| FastAPI
+    
+    FastAPI -->|8a. Cache Hit| SQLiteDoc
+    SQLiteDoc -.->|8b. Return Cached JSON| AnalyzeUI
+    
+    FastAPI -->|9. Cache Miss or force=true| AIEngine
+    AIEngine -->|10. Query relevant chunks| Chroma
+    Chroma -.->|11. Return Excerpts| AIEngine
+    AIEngine -->|12. Call Groq temp=0| GroqAPI((Groq API))
+    GroqAPI -.->|13. Stream pure JSON| FastAPI
+    
+    FastAPI -.->|14. SSE Stream| AnalyzeUI
+    FastAPI -->|15. Save Result| SQLiteDoc
+    
+    AnalyzeUI -->|16. User clicks Download| jsPDF[jsPDF Generator]
+    jsPDF -->|17. Two-Pass Layout| LocalPDF[Local PDF File]
 ```
 
-### 3. Start Frontend
-```bash
-cd frontend
-npm run dev
+---
+
+## 5. Key Engineering Implementations
+
+### A. The Document Analysis Prompt Structure
+The analysis engine (`ai_handler.py`) operates with a strict mandate: it forces Groq to output JSON without markdown wrappers by strictly using `response_format={"type": "json_object"}`. 
+The expected JSON signature is:
+```json
+{
+  "summary": "String...",
+  "red_flags": [
+    {
+       "severity": "HIGH",
+       "title": "...",
+       "excerpt": "...",
+       "issue": "..."
+    }
+  ]
+}
 ```
 
-The application will be available at `http://localhost:5173`
+### B. The Analysis Caching Mechanism
+Due to LLM token costs and latency, the `/analyze` endpoint intercepts requests using a SQLite table `analysis_cache` located inside `documents.db`. 
+*   **Normal Load:** If `force=false` and a cache exists, the backend instantly yields the static JSON wrapped in a simulated stream event, making the frontend render instantly.
+*   **Force Re-evaluate:** A user clicking "Force Re-analyze" sends `force=true` via `api.js`, which bypasses SQLite, queries Groq freshly at `temperature=0`, and overwrites the SQLite cache row upon stream completion via `_save_cached_analysis()`.
 
-## Usage
+### C. Client Side PDF Export (`jsPDF`)
+The `AnalyzeDocument` component dynamically generates professional Legal Analysis Reports locally to prevent server strain. It utilizes a "Two-Pass Rendering Mode".
+1.  **Measurement Pass:** It virtually calculates the Y-axis heights of the generated LLM text chunks using `doc.splitTextToSize()`.
+2.  **Drawing Pass:** It draws the structural rectangles, pill backgrounds, and page breaks (`doc.addPage()`), inserting the text securely over the shapes to guarantee zero text overflow or CSS box clipping.
 
-### 1. User Registration & Login
-- Create an account with email and password
-- Login to access the document analyzer
-
-### 2. Upload Documents
-- Click the upload button
-- Select one or more documents (PDF, DOCX, TXT supported)
-- Wait for processing (chunking and embedding generation)
-
-### 3. Ask Questions
-- Type natural language questions about your uploaded documents
-- Get accurate answers with source citations
-- Ask follow-up questions for deeper understanding
-
-### 4. View Chat History
-- Access previous conversations from the history section
-- Resume discussions about previously uploaded documents
-
-## How It Works
-
-### RAG Pipeline
-
-1. **Document Upload**: Files are uploaded and validated
-2. **Text Extraction**: Content is extracted from various file formats
-3. **Chunking**: Documents are split into overlapping chunks (500 tokens with 50-token overlap)
-4. **Embedding Generation**: Each chunk is converted to vector embeddings using sentence-transformers
-5. **Vector Storage**: Embeddings are stored in Chroma vector database
-6. **Query Processing**: User questions are embedded and semantically matched against document chunks
-7. **Context Retrieval**: Most relevant chunks are retrieved based on vector similarity
-8. **Answer Generation**: LLM generates answers using retrieved context, with source attribution
-
-### Key Features
-
-- **Semantic Search**: Goes beyond keyword matching to understand meaning and context
-- **Source Attribution**: Every answer includes references to specific document sections
-- **Multi-Document Query**: Ask questions that span multiple uploaded documents
-- **Conversation Memory**: Maintains context across multiple questions in a session
-- **Optimized Performance**: Sub-2-second response time for documents up to 100 pages
-
-## Project Structure
-```
-## structure 
-
-DocQChat/
-├─ backend/
-│  ├─ chromadb_storage/
-│  │  ├─ 2
-│  │  ├─ 5
-│  │  └─ chroma.sqlite3
-│  ├─ uploads/
-│  │  ├─ 
-│  ├─ auth.py
-│  ├─ document_processor.py
-│  ├─ legal_handler.py
-│  ├─ main.py
-│  ├─ ollama_handler.py
-│  ├─ requirements.txt
-│  └─ users.json
-├─ frontend/
-│  ├─ public/
-│  │  └─ vite.svg
-│  ├─ src/
-│  │  ├─ assets/
-│  │  │  └─ react.svg
-│  │  ├─ components/
-│  │  │  ├─ Chat/
-│  │  │  │  
-│  │  │  ├─ Home/
-│  │  │  ├─ Landing/
-│  │  │  ├─ Layout/
-│  │  │  ├─ LegalChat/
-│  │  │  ├─ Sidebar/
-│  │  │  ├─ SignIn/
-│  │  │  ├─ SignUp/
-│  │  │  └─ Upload/
-│  │  │     ├─ index.jsx
-│  │  ├─ utils/
-│  │  │  └─ api.js
-│  │  ├─ App.jsx
-│  │  ├─ App.scss
-│  │  ├─ index.css
-│  │  └─ main.jsx
-│  ├─ 
-├─ 
-├─ package-lock.json
-├─ package.json
-└─ Readme.md
-
-
-
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-
-### Documents
-- `POST /api/documents/upload` - Upload document(s)
-- `GET /api/documents` - List user's documents
-- `DELETE /api/documents/{id}` - Delete document
-
-### Chat
-- `POST /api/chat/query` - Ask question about documents
-- `GET /api/chat/history` - Get chat history
-- `DELETE /api/chat/history/{id}` - Delete conversation
-
-## Security
-
-- Passwords are hashed using bcrypt
-- JWT tokens for session management
-- User data isolation (users can only access their own documents)
-- File type validation and size limits
-- Secure file storage
-
-## Performance Optimizations
-
-- Async request handling with FastAPI
-- Efficient vector similarity search with Chroma
-- Document chunking with optimal overlap for context preservation
-- Caching of embeddings to avoid recomputation
-- Lazy loading of chat history
-
-## Limitations
-
-- Maximum file size: 100MB per document
-- Supported formats: PDF, DOCX, TXT
-- Processing time increases with document size
-- Vector database grows with number of documents
-
-## Future Enhancements
-
-- [ ] Support for more file formats (PPTX, CSV, HTML)
-- [ ] OCR for scanned PDFs
-- [ ] Multi-language support
-- [ ] Document summarization
-- [ ] Collaborative document sharing
-- [ ] Export conversations to PDF
-- [ ] Advanced analytics on document usage
-- [ ] Real-time collaborative Q&A sessions
-
-## Troubleshooting
-
-### Common Issues
-
-**Documents not uploading:**
-- Check file size limits (max 100MB)
-- Verify file format is supported
-- Check backend logs for processing errors
-
-**Slow response times:**
-- Large documents may take longer to process
-- Check vector database size and consider cleanup
-- Verify LLM API response times
-
-**Login issues:**
-- Verify MongoDB connection
-- Check JWT secret key configuration
-- Clear browser cookies and try again
-
-## Contributing
-
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-
-## Support
-
-For issues or questions, please open an issue on GitHub.
+### D. Neumorphic Style Implementation Guidelines
+If extending UI components, you **must use CSS Custom Properties** for all shadows, colors, and layout borders.
+*   **Backgrounds:** Use `background: var(--bg-primary)` heavily to mask container boundaries.
+*   **Shadows:** Apply `box-shadow: var(--shadow-md)` for standard pills, dropping to `var(--shadow-inset)` on `:active` states for physical "push" replication.
+*   **Buttons:** Standard buttons are gray text. Important/CTA actions inherit `.btn-primary` or utilize `color: var(--accent-primary)`. Let the CSS variables dictate the exact gold values. Default button border radii must be `border-radius: var(--radius-full)`.
