@@ -78,9 +78,8 @@ d:\ProjectFiles\LegalEase\Dock_Chat\
 
 ## 4. Data & State Flow Graph
 
-```mermaid
-
 graph TD
+
     %% Frontend Entities
     Client[React Client]
     UploadUI[Upload Component]
