@@ -78,9 +78,8 @@ d:\ProjectFiles\LegalEase\Dock_Chat\
 
 ## 4. Data & State Flow Graph
 
-This graph outlines the complete path of a document as it enters the system, is processed by the AI, rendered to the React UI, interacts with the caching system, and is eventually exported to PDF.
-
 ```mermaid
+
 graph TD
     %% Frontend Entities
     Client[React Client]
