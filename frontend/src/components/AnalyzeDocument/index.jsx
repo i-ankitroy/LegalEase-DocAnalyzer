@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { analyzeDocument, analyzeDocumentStream, suggestAlternative, chatWithDocument, chatWithDocumentStream, getSession } from '../../utils/api'
+import jsPDF from 'jspdf'
 import './index.scss'
 
 const SEVERITY_CONFIG = {
@@ -32,6 +33,9 @@ const AnalyzeDocument = () => {
 
   // per-flag alternatives state  { index: { loading, text, shown } }
   const [alternatives, setAlternatives] = useState({})
+
+  // re-analyze click counter (shows Force button after 2 clicks)
+  const [reanalyzeCount, setReanalyzeCount] = useState(0)
 
   // chat state
   const [messages,     setMessages]     = useState([])
@@ -87,14 +91,14 @@ const AnalyzeDocument = () => {
   }, [messages])
 
   /* ── start analysis ─────────────────────────────────────────────────────── */
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (force = false) => {
     if (!documentId || analyzing) return
     setAnalyzing(true)
     setAnalyzeErr(null)
     setRedFlags([])
     setSummary('')
     setAlternatives({})
-    setStreamingLog('Starting deep scan...')
+    setStreamingLog(force ? 'Running fresh analysis...' : 'Loading analysis...')
 
     try {
       const controller = new AbortController()
@@ -111,13 +115,13 @@ const AnalyzeDocument = () => {
             }
           } else if (chunk.type === 'partial_json') {
             finalJSON = chunk.data
-            // Show a tiny bit of the stream so user knows it's working
             setStreamingLog(`Analyzing document structure... ${finalJSON.length} chars processed.`)
           }
         },
         controller.signal,
         'llama3.2',
-        currentSessionId
+        currentSessionId,
+        force
       )
 
       // Once finished, parse the final JSON
@@ -240,6 +244,317 @@ const AnalyzeDocument = () => {
 
   const countBySeverity = (sev) => redFlags.filter(f => f.severity === sev).length
 
+  /* ── PDF download ──────────────────────────────────────────────────────── */
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pageW = doc.internal.pageSize.getWidth()
+    const pageH = doc.internal.pageSize.getHeight()
+    const margin = 18
+    const contentW = pageW - margin * 2
+    const footerH = 14
+    const bottomLimit = pageH - footerH - 4
+    let y = margin
+
+    // Safe page-break: if not enough space, start new page
+    const ensureSpace = (needed) => {
+      if (y + needed > bottomLimit) {
+        doc.addPage()
+        y = margin
+      }
+    }
+
+    // Helper: draw wrapped text line-by-line with page breaks
+    const drawWrappedText = (lines, x, lineH) => {
+      for (let i = 0; i < lines.length; i++) {
+        ensureSpace(lineH)
+        doc.text(lines[i], x, y)
+        y += lineH
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // HEADER BAR
+    // ─────────────────────────────────────────────────────────────────────
+    doc.setFillColor(42, 45, 52)
+    doc.rect(0, 0, pageW, 32, 'F')
+    doc.setFillColor(212, 175, 55)
+    doc.rect(0, 32, pageW, 1.5, 'F')
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(18)
+    doc.setTextColor(245, 197, 24)
+    doc.text('LegalEase', margin, 14)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(180, 180, 180)
+    doc.text('AI-Powered Document Analysis Report', margin, 22)
+
+    const dateStr = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })
+    doc.text(dateStr, pageW - margin, 14, { align: 'right' })
+
+    const truncDocName = (documentName || 'Document').substring(0, 50)
+    doc.text(truncDocName, pageW - margin, 22, { align: 'right' })
+
+    y = 40
+
+    // ─────────────────────────────────────────────────────────────────────
+    // SUMMARY SECTION
+    // ─────────────────────────────────────────────────────────────────────
+    if (summary) {
+      // Section divider line
+      doc.setDrawColor(212, 175, 55)
+      doc.setLineWidth(0.3)
+      doc.line(margin, y, margin + contentW, y)
+      y += 6
+
+      ensureSpace(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.setTextColor(30, 30, 30)
+      doc.text('Overall Assessment', margin, y)
+      y += 8
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      const summaryLines = doc.splitTextToSize(summary, contentW)
+      drawWrappedText(summaryLines, margin, 5.5)
+      y += 4
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // SEVERITY COUNTS BAR
+    // ─────────────────────────────────────────────────────────────────────
+    ensureSpace(14)
+    const highCount = countBySeverity('HIGH')
+    const medCount = countBySeverity('MEDIUM')
+    const lowCount = countBySeverity('LOW')
+
+    doc.setFillColor(245, 245, 248)
+    doc.roundedRect(margin, y, contentW, 10, 2, 2, 'F')
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    let badgeX = margin + 6
+
+    if (highCount > 0) {
+      doc.setFillColor(220, 38, 38)
+      doc.circle(badgeX, y + 5, 1.5, 'F')
+      doc.setTextColor(220, 38, 38)
+      doc.text(`${highCount} High`, badgeX + 4, y + 6.5)
+      badgeX += 28
+    }
+    if (medCount > 0) {
+      doc.setFillColor(217, 119, 6)
+      doc.circle(badgeX, y + 5, 1.5, 'F')
+      doc.setTextColor(217, 119, 6)
+      doc.text(`${medCount} Medium`, badgeX + 4, y + 6.5)
+      badgeX += 32
+    }
+    if (lowCount > 0) {
+      doc.setFillColor(5, 150, 105)
+      doc.circle(badgeX, y + 5, 1.5, 'F')
+      doc.setTextColor(5, 150, 105)
+      doc.text(`${lowCount} Low`, badgeX + 4, y + 6.5)
+      badgeX += 26
+    }
+    if (redFlags.length === 0) {
+      doc.setTextColor(5, 150, 105)
+      doc.text('No Red Flags Found', badgeX + 4, y + 6.5)
+    }
+    y += 16
+
+    // ─────────────────────────────────────────────────────────────────────
+    // RED FLAG CARDS
+    // ─────────────────────────────────────────────────────────────────────
+    if (redFlags.length > 0) {
+      ensureSpace(12)
+      doc.setDrawColor(212, 175, 55)
+      doc.setLineWidth(0.3)
+      doc.line(margin, y, margin + contentW, y)
+      y += 6
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.setTextColor(30, 30, 30)
+      doc.text(`Red Flags Found (${redFlags.length})`, margin, y)
+      y += 10
+
+      const sevColors = {
+        HIGH:   [239, 68, 68],
+        MEDIUM: [245, 158, 11],
+        LOW:    [16, 185, 129]
+      }
+
+      redFlags.forEach((flag, idx) => {
+        const sevColor = sevColors[flag.severity] || sevColors.MEDIUM
+
+        // ── Pre-calculate all text lines for this card ──
+        const titleText = `${idx + 1}. ${flag.title}`
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        const titleLines = doc.splitTextToSize(titleText, contentW - 30)
+
+        let excerptLines = []
+        if (flag.excerpt) {
+          doc.setFont('helvetica', 'italic')
+          doc.setFontSize(9)
+          excerptLines = doc.splitTextToSize('"' + flag.excerpt + '"', contentW - 20)
+        }
+
+        let issueLines = []
+        if (flag.issue) {
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9.5)
+          issueLines = doc.splitTextToSize(flag.issue, contentW - 10)
+        }
+
+        const alt = alternatives[idx]
+        let altLines = []
+        if (alt && alt.text && !alt.loading) {
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          altLines = doc.splitTextToSize(alt.text, contentW - 20)
+        }
+
+        // ── Calculate total card height ──
+        const titleH = titleLines.length * 5 + 6
+        const excerptH = excerptLines.length > 0 ? excerptLines.length * 4.5 + 8 : 0
+        const issueH = issueLines.length > 0 ? issueLines.length * 5 + 4 : 0
+        const altH = altLines.length > 0 ? altLines.length * 4.5 + 14 : 0
+        const totalCardH = titleH + excerptH + issueH + altH + 4
+
+        // Page break if card doesn't fit (but min 40mm to avoid infinite loop)
+        ensureSpace(Math.min(totalCardH, 40))
+
+        const cardTop = y
+
+        // ── Title background ──
+        doc.setFillColor(248, 248, 250)
+        doc.roundedRect(margin, y, contentW, titleH, 2, 2, 'F')
+
+
+
+        // Title text
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        doc.setTextColor(30, 30, 30)
+        let titleY = y + 5
+        titleLines.forEach((line) => {
+          doc.text(line, margin + 6, titleY)
+          titleY += 5
+        })
+
+        // Severity label
+        doc.setFontSize(8)
+        doc.setTextColor(...sevColor)
+        doc.text(`[${flag.severity}]`, pageW - margin - 4, y + 5, { align: 'right' })
+
+        y += titleH + 2
+
+        // ── Excerpt block ──
+        if (excerptLines.length > 0) {
+          ensureSpace(excerptH)
+          const exTop = y
+
+          // Background
+          doc.setFillColor(244, 244, 248)
+          doc.roundedRect(margin + 6, exTop, contentW - 12, excerptH - 2, 1.5, 1.5, 'F')
+
+
+
+          // Excerpt text
+          doc.setFont('helvetica', 'italic')
+          doc.setFontSize(9)
+          doc.setTextColor(90, 90, 90)
+          y = exTop + 4
+          excerptLines.forEach((line) => {
+            doc.text(line, margin + 12, y)
+            y += 4.5
+          })
+          y += 2
+        }
+
+        // ── Issue text ──
+        if (issueLines.length > 0) {
+          ensureSpace(6)
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9.5)
+          doc.setTextColor(55, 55, 55)
+          y += 1
+          issueLines.forEach((line) => {
+            ensureSpace(5)
+            doc.text(line, margin + 6, y)
+            y += 5
+          })
+          y += 2
+        }
+
+        // ── Alternative block ──
+        if (altLines.length > 0) {
+          ensureSpace(14)
+          const altTop = y
+
+          // Background
+          doc.setFillColor(255, 250, 230)
+          const altBlockH = altLines.length * 4.5 + 12
+          doc.roundedRect(margin + 6, altTop, contentW - 12, altBlockH, 1.5, 1.5, 'F')
+
+          // Header label
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(8)
+          doc.setTextColor(180, 140, 10)
+          doc.text('SUGGESTED ALTERNATIVE', margin + 10, altTop + 5)
+
+          // Alt text
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(70, 60, 30)
+          y = altTop + 10
+          altLines.forEach((line) => {
+            ensureSpace(5)
+            doc.text(line, margin + 10, y)
+            y += 4.5
+          })
+          y += 4
+        }
+
+        // Bottom spacing between cards
+        y += 8
+
+        // Thin separator between cards
+        if (idx < redFlags.length - 1) {
+          doc.setDrawColor(220, 220, 225)
+          doc.setLineWidth(0.2)
+          doc.line(margin + 10, y - 4, pageW - margin - 10, y - 4)
+        }
+      })
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // FOOTER on every page
+    // ─────────────────────────────────────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFillColor(245, 245, 248)
+      doc.rect(0, pageH - footerH, pageW, footerH, 'F')
+      doc.setFillColor(212, 175, 55)
+      doc.rect(0, pageH - footerH, pageW, 0.5, 'F')
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7.5)
+      doc.setTextColor(140, 140, 140)
+      doc.text('Generated by LegalEase - AI Document Analysis', margin, pageH - 5)
+      doc.text(`Page ${i} of ${totalPages}`, pageW - margin, pageH - 5, { align: 'right' })
+    }
+
+    // Save file
+    const safeName = (documentName || 'document').replace(/[^a-zA-Z0-9]/g, '_')
+    doc.save(`LegalEase_Analysis_${safeName}.pdf`)
+  }
+
   /* ── render ─────────────────────────────────────────────────────────────── */
   return (
     <div className="analyze-document">
@@ -281,7 +596,7 @@ const AnalyzeDocument = () => {
               </button>
             </div>
           ) : (
-            <button className="start-btn" onClick={handleAnalyze}>
+            <button className="start-btn" onClick={() => handleAnalyze(false)}>
               <span>🔍</span> Start Analysis
             </button>
           )}
@@ -325,9 +640,17 @@ const AnalyzeDocument = () => {
           )}
 
           {/* Re-analyse button */}
-          <button className="reanalyze-btn" onClick={() => { setAnalyzed(false); setRedFlags([]); setSummary('') }}>
-            🔄 Re-analyze
-          </button>
+          {/* Re-analyse (from cache) + Force Re-analyse (fresh API call) */}
+          <div className="reanalyze-actions">
+            <button className="reanalyze-btn" onClick={() => { setReanalyzeCount(c => c + 1); setAnalyzed(false); setRedFlags([]); setSummary('') }}>
+              🔄 Re-analyze
+            </button>
+            {reanalyzeCount >= 2 && (
+              <button className="reanalyze-btn reanalyze-btn--force" onClick={() => { setReanalyzeCount(0); setAnalyzed(false); setRedFlags([]); setSummary(''); setTimeout(() => handleAnalyze(true), 100) }}>
+                ⚡ Force Re-analyze
+              </button>
+            )}
+          </div>
 
           {/* Red flag cards */}
           {redFlags.length > 0 && (
@@ -398,6 +721,16 @@ const AnalyzeDocument = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Download PDF ───────────────────────────────────────────────────── */}
+      {analyzed && (
+        <div className="download-section">
+          <button className="download-btn" onClick={handleDownloadPDF}>
+            <span className="download-btn__icon">📥</span>
+            <span className="download-btn__text">Download Analysis Report (PDF)</span>
+          </button>
         </div>
       )}
 

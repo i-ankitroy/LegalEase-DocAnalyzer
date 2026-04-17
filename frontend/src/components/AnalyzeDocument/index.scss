@@ -215,8 +215,15 @@
   &--clean  { background: rgba(16,185,129,0.15); border: none; color: #059669; box-shadow: var(--shadow-sm); }
 }
 
+.reanalyze-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: var(--spacing-sm);
+}
+
 .reanalyze-btn {
-  align-self: flex-start;
   padding: 0.5rem 1.25rem;
   font-size: 0.875rem;
   background: var(--bg-primary);
@@ -233,6 +240,13 @@
   }
   &:active {
     box-shadow: var(--shadow-inset);
+  }
+
+  &--force {
+    color: var(--warning);
+    &:hover {
+      color: var(--accent-primary);
+    }
   }
 }
 
@@ -348,8 +362,9 @@
   }
 
   &--toggle {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    background: var(--bg-primary);
+    color: var(--accent-primary);
+    box-shadow: var(--shadow-sm);
   }
 }
 
@@ -390,6 +405,51 @@
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
   overflow-x: auto;
+}
+
+/* ── Download Section ────────────────────────────────────────────────────── */
+.download-section {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+  animation: fadeIn 0.4s ease;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--bg-primary);
+  color: var(--accent-secondary);
+  border: 3px solid var(--accent-primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm), 0 0 8px rgba(245, 197, 24, 0.3);
+
+  [data-theme="dark"] & {
+    border-color: transparent;
+    background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                linear-gradient(135deg, #fff199 0%, #d4af37 25%, #664800 50%, #d4af37 75%, #fff8dc 100%) border-box;
+  }
+
+  &__icon {
+    font-size: 1.2rem;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md), 0 0 15px rgba(245, 197, 24, 0.5);
+    color: var(--accent-primary);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-inset);
+  }
 }
 
 /* ── Chat Section ────────────────────────────────────────────────────────── */

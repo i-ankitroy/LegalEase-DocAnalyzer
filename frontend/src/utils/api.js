@@ -184,18 +184,19 @@ export const getDocument = async (documentId) =>
 export const listModels = async () =>
   apiRequest('/models')
 
-export const analyzeDocument = async (documentId, model = 'llama3.2', sessionId = null) =>
+export const analyzeDocument = async (documentId, model = 'llama3.2', sessionId = null, force = false) =>
   apiRequest('/analyze', {
     method: 'POST',
     body: JSON.stringify({
       document_id: documentId,
       model,
       stream: false,
+      force,
       ...(sessionId && { session_id: sessionId })
     }),
   })
 
-export const analyzeDocumentStream = async (documentId, onChunk, signal = null, model = 'llama3.2', sessionId = null) => {
+export const analyzeDocumentStream = async (documentId, onChunk, signal = null, model = 'llama3.2', sessionId = null, force = false) => {
   const config = {
     method: 'POST',
     credentials: 'include',
@@ -205,6 +206,7 @@ export const analyzeDocumentStream = async (documentId, onChunk, signal = null, 
       document_id: documentId,
       model,
       stream: true,
+      force,
       ...(sessionId && { session_id: sessionId })
     }),
   }

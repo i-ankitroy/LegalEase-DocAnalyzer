@@ -70,6 +70,13 @@ def _init_docs_db():
             FOREIGN KEY (session_id) REFERENCES chat_sessions (session_id) ON DELETE CASCADE
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS analysis_cache (
+            doc_id      TEXT PRIMARY KEY,
+            result_json TEXT NOT NULL,
+            created_at  TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -98,6 +105,31 @@ def _delete_doc(doc_id):
     conn = sqlite3.connect(DOCS_DB_PATH)
     conn.execute('PRAGMA foreign_keys = ON')
     conn.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
+    conn.execute("DELETE FROM analysis_cache WHERE doc_id = ?", (doc_id,))
+    conn.commit()
+    conn.close()
+
+# ── Analysis Cache Helpers ─────────────────────────────────────────────────────
+
+def _get_cached_analysis(doc_id) -> Optional[dict]:
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT result_json FROM analysis_cache WHERE doc_id = ?", (doc_id,)).fetchone()
+    conn.close()
+    if row:
+        try:
+            return json.loads(row["result_json"])
+        except json.JSONDecodeError:
+            return None
+    return None
+
+def _save_cached_analysis(doc_id, result: dict):
+    from datetime import datetime
+    conn = sqlite3.connect(DOCS_DB_PATH)
+    conn.execute(
+        "INSERT OR REPLACE INTO analysis_cache (doc_id, result_json, created_at) VALUES (?,?,?)",
+        (doc_id, json.dumps(result), datetime.utcnow().isoformat())
+    )
     conn.commit()
     conn.close()
 
@@ -265,6 +297,7 @@ class AnalyzeRequest(BaseModel):
     model: str = Field(default="llama3.2", max_length=64, pattern=r"^[a-zA-Z0-9._:/-]+$")
     session_id: Optional[str] = None
     stream: bool = Field(default=True)
+    force: bool = Field(default=False)
 
 
 class SuggestAlternativeRequest(BaseModel):
@@ -587,20 +620,50 @@ async def analyze_document_endpoint(
             title = "Document Analysis"
             _create_session(session_id, current_user["email"], req.document_id, doc["filename"], title)
 
+        # ── Check cache (if not force re-analyze) ─────────────────────────
+        if not req.force:
+            cached = _get_cached_analysis(req.document_id)
+            if cached:
+                logger.info(f"Returning cached analysis for {req.document_id}")
+                if req.stream:
+                    # Return cached result as a single streamed chunk
+                    def cached_stream():
+                        yield f"METADATA:{json.dumps({'session_id': session_id, 'document_id': req.document_id})}\n\n"
+                        yield json.dumps(cached)
+                    return StreamingResponse(cached_stream(), media_type="text/plain")
+                return {
+                    "document_id": req.document_id,
+                    "filename": doc["filename"],
+                    "summary": cached["summary"],
+                    "red_flags": cached["red_flags"],
+                    "flag_count": len(cached["red_flags"]),
+                    "session_id": session_id,
+                    "cached": True
+                }
+
+        # ── No cache or force=true → call Groq ────────────────────────────
         if req.stream:
             content_gen = analyze_document_for_flags(req.document_id, req.model, stream=True)
             def generate():
                 yield f"METADATA:{json.dumps({'session_id': session_id, 'document_id': req.document_id})}\n\n"
+                full_json = ""
                 for chunk in content_gen:
+                    full_json += chunk
                     yield chunk
+                # Cache the result after stream completes
+                try:
+                    parsed = json.loads(full_json)
+                    _save_cached_analysis(req.document_id, parsed)
+                except json.JSONDecodeError:
+                    pass
             return StreamingResponse(generate(), media_type="text/plain")
 
         result = analyze_document_for_flags(req.document_id, req.model, stream=False)
 
+        # Save to cache
+        _save_cached_analysis(req.document_id, result)
+
         # Save the analysis summary as the first assistant message if not streaming
-        # (If streaming, saving the summary would require intercepting the stream end,
-        # which is complex. For now, we only save the first message in non-streaming mode,
-        # or the frontend handles subsequent chat history.)
         if req.session_id is None:
             _save_message(session_id, "assistant", f"**Analysis Summary:**\n{result.get('summary', 'Analysis Complete')}")
 
@@ -610,7 +673,8 @@ async def analyze_document_endpoint(
             "summary": result["summary"],
             "red_flags": result["red_flags"],
             "flag_count": len(result["red_flags"]),
-            "session_id": session_id
+            "session_id": session_id,
+            "cached": False
         }
     except HTTPException:
         raise

@@ -107,6 +107,7 @@ ONLY output valid JSON. No other text."""
                     messages=[{'role': 'user', 'content': prompt}],
                     model=groq_model,
                     response_format={"type": "json_object"},
+                    temperature=0,
                     stream=True
                 )
                 for chunk in chat_completion:
@@ -117,7 +118,8 @@ ONLY output valid JSON. No other text."""
         response = client.chat.completions.create(
             messages=[{'role': 'user', 'content': prompt}],
             model=groq_model,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            temperature=0
         )
         
         raw = response.choices[0].message.content
@@ -144,16 +146,20 @@ def suggest_alternative(
     model: str = "llama-3.1-8b-instant"
 ) -> str:
     try:
-        prompt = f"""You are a legal advisor helping a user understand their options regarding a concerning clause in a contract.
+        prompt = f"""You are a friendly legal advisor. A user found a concerning clause in their contract.
 
 RED FLAG: {red_flag_title}
 CLAUSE: "{red_flag_excerpt}"
 CONCERN: {red_flag_issue}
 
-Please provide a practical response with three clear sections:
-1. FAIRER ALTERNATIVE (Reworded version)
-2. HOW TO NEGOTIATE (Practical steps)
-3. WHAT TO WATCH FOR (Key things to verify)"""
+Give exactly 4 to 5 short and simple suggestions as numbered points (1. 2. 3. etc).
+Each point should be one or two sentences max, written in plain everyday language that anyone can understand.
+
+STRICT RULES:
+- Do NOT use any asterisks (*), dashes (-), bullet points, bold text, headers, or any markdown formatting.
+- Do NOT use legal jargon. Write like you are explaining to a friend.
+- Start each point directly with the number and a period (e.g. "1. Ask them to...")
+- Keep the total response under 150 words."""
 
         groq_model = _get_groq_model(model)
         
