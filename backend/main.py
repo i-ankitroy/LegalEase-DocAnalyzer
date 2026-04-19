@@ -520,14 +520,15 @@ async def chat(
                 model=req.model,
                 stream=True
             )
-            # For streaming, we need a way to pass metadata.
-            # We'll use a simple format: event: metadata \n\n data: chunk \n\n
             def generate():
-                # Yield session_id first as metadata
                 yield f"METADATA:{json.dumps({'session_id': session_id, 'document_id': req.document_id})}\n\n"
+                full_reply = ""
                 for chunk in content_generator:
+                    full_reply += chunk
                     yield chunk
-            
+                # Save the complete assistant reply after stream finishes
+                if full_reply.strip():
+                    _save_message(session_id, "assistant", full_reply)
             return StreamingResponse(generate(), media_type="text/plain")
 
         response = chat_with_document(
@@ -617,7 +618,8 @@ async def analyze_document_endpoint(
         session_id = req.session_id
         if not session_id:
             session_id = str(uuid.uuid4())
-            title = "Document Analysis"
+            # Use document filename as session title for readable history
+            title = f"Analysis: {doc['filename'][:45]}" if len(doc['filename']) > 45 else f"Analysis: {doc['filename']}"
             _create_session(session_id, current_user["email"], req.document_id, doc["filename"], title)
 
         # ── Check cache (if not force re-analyze) ─────────────────────────
@@ -650,10 +652,12 @@ async def analyze_document_endpoint(
                 for chunk in content_gen:
                     full_json += chunk
                     yield chunk
-                # Cache the result after stream completes
+                # After stream ends: cache + save summary to session history
                 try:
                     parsed = json.loads(full_json)
                     _save_cached_analysis(req.document_id, parsed)
+                    summary_text = parsed.get('summary', 'Analysis complete.')
+                    _save_message(session_id, "assistant", f"Analysis Summary:\n{summary_text}")
                 except json.JSONDecodeError:
                     pass
             return StreamingResponse(generate(), media_type="text/plain")
@@ -733,7 +737,7 @@ async def get_history(current_user: dict = Depends(get_current_user)):
 
 @app.get("/history/{session_id}")
 async def get_session(session_id: str, current_user: dict = Depends(get_current_user)):
-    """Get messages for a specific chat session."""
+    """Get messages for a specific chat session, including cached red flag analysis."""
     try:
         sessions = _get_history(current_user["email"])
         session = next((s for s in sessions if s["session_id"] == session_id), None)
@@ -741,7 +745,16 @@ async def get_session(session_id: str, current_user: dict = Depends(get_current_
             raise HTTPException(status_code=403, detail="Access denied or session not found.")
         
         messages = _get_session_messages(session_id)
-        return {"session_id": session_id, "session": session, "messages": messages}
+
+        # Also load cached red flags for this document so the UI can restore the analysis
+        cached = _get_cached_analysis(session["document_id"])
+
+        return {
+            "session_id": session_id,
+            "session": session,
+            "messages": messages,
+            "analysis": cached  # None if never analyzed, otherwise {summary, red_flags}
+        }
     except HTTPException:
         raise
     except Exception as e:

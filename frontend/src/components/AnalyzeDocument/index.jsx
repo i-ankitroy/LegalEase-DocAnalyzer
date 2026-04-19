@@ -57,8 +57,17 @@ const AnalyzeDocument = () => {
           setDocumentName(data.session.document_name)
           setCurrentSessionId(data.session_id)
           setMessages(data.messages || [])
+
+          // Restore cached red flags + summary if available
+          if (data.analysis) {
+            setSummary(data.analysis.summary || '')
+            setRedFlags(data.analysis.red_flags || [])
+          } else {
+            setSummary('')
+            setRedFlags([])
+          }
+
           setAnalyzed(true) // Open the UI
-          // Optional: we don't restore red flags here, just the chat that shows the summary
         })
         .catch(err => {
           console.error("Failed to load session:", err)
