@@ -583,16 +583,15 @@ async def legal_chat_with_history(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        response = legal_handler.chat_with_history(req.messages)
-        return {
-            "status": "success",
-            "response": response,
-            "disclaimer": "This is general legal information, not legal advice. Please consult with a licensed attorney for specific legal matters."
-        }
+        def generate():
+            for chunk in legal_handler.chat_stream(req.messages):
+                yield chunk
+
+        return StreamingResponse(generate(), media_type="text/plain")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Legal chat-history error for {current_user.get('email')}: {e}", exc_info=True)
+        logger.error(f"Legal chat-history stream error for {current_user.get('email')}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An error occurred in the legal assistant.")
 
 

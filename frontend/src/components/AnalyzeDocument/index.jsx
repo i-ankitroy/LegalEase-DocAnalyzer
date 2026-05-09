@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { analyzeDocument, analyzeDocumentStream, suggestAlternative, chatWithDocument, chatWithDocumentStream, getSession } from '../../utils/api'
+import { analyzeDocumentStream, suggestAlternative, chatWithDocumentStream, getSession } from '../../utils/api' // chatWithDocument & analyzeDocument (non-stream) commented out in api.js — remove from import
+
 import jsPDF from 'jspdf'
 import './index.scss'
 

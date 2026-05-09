@@ -17,7 +17,14 @@ def chat_with_document(document_id: str, question: str, model: str = "llama-3.1-
         relevant_chunks = query_document(document_id, question, n_results=3)
         context = "\n\n---\n\n".join([chunk["text"] for chunk in relevant_chunks])
         
-        prompt = f"""You are a helpful assistant that answers questions about documents.
+        prompt = f"""You are a highly professional legal analyst answering questions about a document.
+
+CRITICAL FORMATTING RULES:
+1. DO NOT USE MARKDOWN. Do not use asterisks (*) or double asterisks (**) for bolding or lists under ANY circumstances.
+2. If you need to make a list, use the standard bullet point character (•) or numbered lists (1., 2.).
+3. Space your paragraphs professionally. Use clear, separated paragraphs for readability.
+4. Maintain a highly professional, objective, and analytical tone.
+5. Do not sound like an AI chatbot. Sound like a professional legal expert writing a formal memo.
 
 Based on the following relevant excerpts from the document, please answer the question.
 
@@ -26,7 +33,7 @@ Relevant excerpts:
 
 Question: {question}
 
-Please provide a clear and concise answer based on the excerpts above. If the excerpts don't contain enough information to answer the question, say so."""
+Please provide a clear and concise answer based ONLY on the excerpts above. If the excerpts don't contain enough information to answer the question, state that professionally."""
 
         groq_model = _get_groq_model(model)
 
@@ -80,11 +87,16 @@ def analyze_document_for_flags(document_id: str, model: str = "llama-3.1-8b-inst
 DOCUMENT CONTENT:
 {context}
 
+FIRST, determine if this document is actually a legal document, contract, Terms of Service, Privacy Policy, or agreement.
+If the document is NOT a legal document (e.g., it is a story, a technical explanation, a casual conversation, etc.), you MUST return an empty array for "red_flags" and explain in the "summary" that the document does not appear to be a legal contract and therefore no legal risks were analyzed.
+
+If it IS a legal document, analyze it for red flags.
+
 You MUST respond with ONLY a valid JSON object. Do not include any markdown formatting, backticks, or conversational text. 
 The JSON object must EXACTLY follow this structure:
 
 {{
-  "summary": "A 2-3 sentence overall risk summary of this document in easy understandable language.",
+  "summary": "A 2-3 sentence overall risk summary of this document in easy understandable language. If not a legal document, state that here.",
   "red_flags": [
     {{
       "severity": "HIGH", 

@@ -100,17 +100,6 @@ export const uploadDocument = async (file) => {
   return response.json()
 }
 
-export const chatWithDocument = async (documentId, question, model = 'llama3.2', sessionId = null) =>
-  apiRequest('/chat', {
-    method: 'POST',
-    body: JSON.stringify({ 
-      document_id: documentId, 
-      question, 
-      model,
-      stream: false,
-      ...(sessionId && { session_id: sessionId })
-    }),
-  })
 
 export const chatWithDocumentStream = async (documentId, question, onChunk, signal = null, model = 'llama3.2', sessionId = null) => {
   const config = {
@@ -166,23 +155,33 @@ export const chatWithDocumentStream = async (documentId, question, onChunk, sign
   }
 }
 
-export const legalChat = async (message) =>
-  apiRequest('/api/legal/chat', {
-    method: 'POST',
-    body: JSON.stringify({ message }),
-  })
 
-export const legalChatWithHistory = async (messages) =>
-  apiRequest('/api/legal/chat-history', {
+export const legalChatWithHistory = async (messages, onChunk, signal = null) => {
+  const config = {
     method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...(signal && { signal }),
     body: JSON.stringify({ messages }),
-  })
+  }
 
-export const getDocument = async (documentId) =>
-  apiRequest(`/document/${documentId}`)
+  const response = await fetch(`${API_BASE_URL}/api/legal/chat-history`, config)
+  if (!response.ok) {
+    const data = await response.json()
+    throw new Error(data.detail || 'Legal chat stream failed')
+  }
 
-export const listModels = async () =>
-  apiRequest('/models')
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk = decoder.decode(value, { stream: true })
+    if (chunk) onChunk(chunk)
+  }
+}
+
 
 export const analyzeDocument = async (documentId, model = 'llama3.2', sessionId = null, force = false) =>
   apiRequest('/analyze', {

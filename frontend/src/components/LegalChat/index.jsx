@@ -25,23 +25,44 @@ const LegalChat = () => {
 
     const userMessage = input.trim()
     setInput('')
+
+    // Add user message
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+
+    // Add an empty assistant bubble to stream into
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
     setLoading(true)
 
     try {
-      // Build history payload (exclude the initial system welcome message for the API)
+      // Build history for the API (skip the welcome message, include the new user msg)
       const historyForApi = messages
         .filter(m => m.role !== 'system')
         .concat({ role: 'user', content: userMessage })
         .map(m => ({ role: m.role, content: m.content }))
 
-      const data = await legalChatWithHistory(historyForApi)
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+      await legalChatWithHistory(historyForApi, (chunk) => {
+        // Fill the last (assistant) bubble with each incoming token
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: updated[updated.length - 1].content + chunk
+          }
+          return updated
+        })
+      })
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: err.message || 'Sorry, I encountered an error. Please try again.'
-      }])
+      // Replace the empty bubble with the error text
+      setMessages(prev => {
+        const updated = [...prev]
+        updated[updated.length - 1] = {
+          role: 'assistant',
+          content: err.name === 'AbortError'
+            ? 'Response canceled.'
+            : err.message || 'Sorry, I encountered an error. Please try again.'
+        }
+        return updated
+      })
     } finally {
       setLoading(false)
     }

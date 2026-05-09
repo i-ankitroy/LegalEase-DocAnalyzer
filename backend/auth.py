@@ -100,14 +100,6 @@ class UserSignIn(BaseModel):
     password: str
 
 
-class Token(BaseModel):
-    token_type: str
-
-
-class UserResponse(BaseModel):
-    email: str
-    full_name: str
-    created_at: str
 
 
 # ── Password Utilities ─────────────────────────────────────────────────────────
