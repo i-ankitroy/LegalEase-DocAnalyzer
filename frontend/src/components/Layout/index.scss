@@ -5,7 +5,7 @@
   width: 100%;
   overflow: hidden;
   position: relative;
-  background-color: var(--bg-primary);
+  background: transparent;
 
   &::before {
     content: '';

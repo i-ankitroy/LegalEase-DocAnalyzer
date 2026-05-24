@@ -2,7 +2,7 @@
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  background-color: var(--bg-primary);
+  background: transparent;
   position: relative;
   z-index: 1;
 
@@ -32,7 +32,7 @@
       right: -5%;
       width: 30vw;
       height: 30vw;
-      background: rgba(245, 197, 24, 0.15);
+      background: var(--accent-glow);
     }
     
     &.glow-2 {
@@ -40,7 +40,7 @@
       left: -10%;
       width: 35vw;
       height: 35vw;
-      background: rgba(163, 177, 198, 0.2);
+      background: rgba(99, 155, 255, 0.15);
     }
 
     &.glow-3 {
@@ -48,7 +48,7 @@
       left: -10%;
       width: 25vw;
       height: 25vw;
-      background: rgba(212, 175, 55, 0.12);
+      background: var(--accent-glow);
     }
 
     &.glow-4 {
@@ -56,7 +56,7 @@
       right: -5%;
       width: 25vw;
       height: 25vw;
-      background: rgba(212, 175, 55, 0.1);
+      background: var(--accent-glow);
     }
 
     &.glow-5 {
@@ -64,7 +64,7 @@
       right: -10%;
       width: 30vw;
       height: 30vw;
-      background: rgba(163, 177, 198, 0.15);
+      background: rgba(99, 155, 255, 0.12);
     }
   }
 
@@ -183,7 +183,7 @@
       .floating-card {
         position: absolute;
         background: var(--bg-primary);
-        border: none;
+        border: 1px solid var(--glass-border);
         border-radius: var(--radius-lg);
         padding: var(--spacing-lg);
         display: flex;
@@ -191,6 +191,8 @@
         gap: var(--spacing-md);
         box-shadow: var(--shadow-lg);
         cursor: pointer;
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
 
         .card-icon {
           font-size: 2.5rem;
@@ -198,7 +200,7 @@
           color: var(--accent-primary);
           padding: var(--spacing-sm);
           border-radius: var(--radius-md);
-          box-shadow: var(--shadow-inset);
+          transform: scale(0.98);
         }
 
         p {
@@ -277,7 +279,7 @@
         }
 
         &:active {
-          box-shadow: var(--shadow-inset);
+          transform: scale(0.98);
           transform: scale(0.95);
         }
       }
@@ -293,7 +295,7 @@
 
         .carousel-active {
           background: var(--bg-primary);
-          border: none;
+          border: 1px solid var(--glass-border);
           border-radius: var(--radius-xl);
           padding: var(--spacing-2xl);
           position: absolute;
@@ -304,6 +306,8 @@
           justify-content: center;
           text-align: center;
           box-shadow: var(--shadow-md);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
 
           .feature-icon-wrapper {
             width: 80px;
@@ -314,7 +318,7 @@
             align-items: center;
             justify-content: center;
             margin-bottom: var(--spacing-lg);
-            box-shadow: var(--shadow-inset);
+            transform: scale(0.98);
 
             .feature-icon {
               font-size: 2.5rem;
@@ -344,7 +348,7 @@
               height: 10px;
               border-radius: 50%;
               background: var(--bg-tertiary);
-              box-shadow: var(--shadow-inset);
+              transform: scale(0.98);
               cursor: pointer;
               transition: all 0.3s ease;
 
@@ -458,6 +462,9 @@
       padding: var(--spacing-2xl);
       position: relative;
       box-shadow: var(--shadow-lg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
 
       h2 {
         font-size: 2.5rem;

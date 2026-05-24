@@ -9,7 +9,7 @@
 
   .chat-header {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
     padding: var(--spacing-xl);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -65,7 +65,7 @@
   .chat-messages {
     flex: 1;
     background: rgba(15, 17, 26, 0.6);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(24px);
     overflow-y: auto;
     padding: var(--spacing-xl);
     display: flex;
@@ -238,7 +238,7 @@
 
   .chat-input {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
     padding: var(--spacing-lg);
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);

@@ -708,21 +708,25 @@ const AnalyzeDocument = () => {
                       </div>
 
                       {/* Alternative content */}
-                      {alt && alt.shown && (
-                        <div className="alternative-panel">
-                          {alt.loading ? (
-                            <div className="alt-loading">
-                              <div className="typing-indicator">
-                                <span /><span /><span />
-                              </div>
-                              <p>Generating alternative…</p>
+                      {alt && (
+                        <div className={`alternative-panel-wrapper ${alt.shown ? 'open' : ''}`}>
+                          <div className="alternative-panel-inner">
+                            <div className="alternative-panel">
+                              {alt.loading ? (
+                                <div className="alt-loading">
+                                  <div className="typing-indicator">
+                                    <span /><span /><span />
+                                  </div>
+                                  <p>Generating alternative…</p>
+                                </div>
+                              ) : (
+                                <div className="alt-content">
+                                  <div className="alt-content__header">💡 Alternative &amp; Negotiation Advice</div>
+                                  <pre className="alt-text">{alt.text}</pre>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="alt-content">
-                              <div className="alt-content__header">💡 Alternative &amp; Negotiation Advice</div>
-                              <pre className="alt-text">{alt.text}</pre>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>

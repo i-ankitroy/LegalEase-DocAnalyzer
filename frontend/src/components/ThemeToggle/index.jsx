@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './index.scss'
 
 const ThemeToggle = ({ isFixed = true }) => {
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
